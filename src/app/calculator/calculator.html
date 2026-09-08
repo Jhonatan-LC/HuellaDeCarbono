@@ -1,0 +1,155 @@
+<app-topbar></app-topbar>
+
+<div class="calculator-container">
+  <header class="calc-header card">
+    <div>
+      <p class="eyebrow">Medición mensual</p>
+      <h1>Calculadora de huella de carbono</h1>
+      <p class="calc-header-copy">Ingresa tus consumos o sube una boleta para auditar y seguir la evolución de tu impacto.</p>
+    </div>
+    <div class="header-summary" aria-label="Factores de cálculo">
+      <div>
+        <span>Factor eléctrico</span>
+        <strong>{{ FACTOR_LUZ }} kg CO2e/kWh</strong>
+      </div>
+      <div>
+        <span>Combustible</span>
+        <strong>{{ FACTOR_COMBUSTIBLE }} kg CO2/L</strong>
+      </div>
+    </div>
+  </header>
+
+  <main class="content-grid">
+    <section class="manual-panel card" aria-labelledby="manual-title">
+      <div class="section-heading">
+        <p class="eyebrow">Ingreso rápido</p>
+        <h2 id="manual-title">Datos del mes</h2>
+      </div>
+
+      <div class="calc-cards">
+        <div class="input-card">
+          <div class="card-icon">Mes</div>
+          <h3>Periodo</h3>
+          <label for="periodoManual">Mes del registro</label>
+          <input
+            type="text"
+            id="periodoManual"
+            [(ngModel)]="periodoManual"
+            placeholder="Ej: 2026-06"
+          >
+        </div>
+
+        <div class="input-card">
+          <div class="card-icon">kWh</div>
+          <h3>Consumo eléctrico</h3>
+          <label for="luz">Energía facturada (kWh)</label>
+          <input
+            type="number"
+            id="luz"
+            [(ngModel)]="consumoLuzKwh"
+            placeholder="Ej: 150"
+          >
+        </div>
+
+        <div class="input-card">
+          <div class="card-icon">L</div>
+          <h3>Combustible</h3>
+          <label for="combustible">Carga del vehículo (litros)</label>
+          <input
+            type="number"
+            id="combustible"
+            [(ngModel)]="consumoCombustibleLitros"
+            placeholder="Ej: 60"
+          >
+        </div>
+      </div>
+
+      <div class="calc-actions">
+        <button class="btn btn-primary" type="button" (click)="calcularHuella()">Calcular y guardar</button>
+        <button class="btn btn-secondary" type="button" (click)="limpiarFormulario()">Limpiar</button>
+      </div>
+      <p class="save-message" *ngIf="saveMessage">{{ saveMessage }}</p>
+    </section>
+
+    <section class="upload-section card" aria-labelledby="upload-title">
+      <div class="section-heading">
+        <p class="eyebrow">Auditoría</p>
+        <h2 id="upload-title">Subir boleta</h2>
+      </div>
+      <div class="upload-row">
+        <label class="file-drop">
+          <span class="file-drop-title">Seleccionar archivo</span>
+          <span class="file-drop-copy">PDF, JPG o PNG</span>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,image/png,image/jpeg,application/pdf" (change)="onFileSelected($event)">
+        </label>
+        <button class="btn btn-primary" type="button" (click)="uploadBoleta()" [disabled]="isSubiendo || !selectedFile || !periodo">
+          {{ isSubiendo ? 'Subiendo...' : 'Subir boleta' }}
+        </button>
+      </div>
+      <div class="period-row">
+        <label for="periodo">Periodo</label>
+        <input id="periodo" type="text" [(ngModel)]="periodo" placeholder="Ej: 2026-06">
+      </div>
+      <p class="upload-info" *ngIf="selectedFile">Archivo seleccionado: {{ selectedFile.name }}</p>
+      <p class="error-text" *ngIf="uploadError">{{ uploadError }}</p>
+    </section>
+  </main>
+
+  <section class="audit-section card" *ngIf="historialBoletas.length > 0">
+    <div class="section-heading">
+      <p class="eyebrow">Últimas cargas</p>
+      <h2>Historial de auditoría</h2>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Periodo</th>
+            <th>Archivo</th>
+            <th>Litros/kWh</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let boleta of historialBoletas">
+            <td>{{ boleta.periodo_referencia }}</td>
+            <td>
+              <a *ngIf="boleta.archivo_url; else registroManual" [href]="boleta.archivo_url" target="_blank">Ver PDF</a>
+              <ng-template #registroManual>Manual</ng-template>
+            </td>
+            <td>{{ formatValorExtraido(boleta) }}</td>
+            <td>
+              <span class="badge"
+                    [class.badge-Procesado]="boleta.estado === 'Procesado'"
+                    [class.badge-Pendiente]="boleta.estado === 'Pendiente'"
+                    [class.badge-Error]="boleta.estado === 'Error'">
+                {{ boleta.estado }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="calc-results card" *ngIf="huellaTotal > 0">
+    <div class="section-heading">
+      <p class="eyebrow">Resultado</p>
+      <h2>Resultados del mes</h2>
+    </div>
+    <div class="result-grid">
+      <div class="result-item">
+        <span>Electricidad</span>
+        <strong>{{ huellaLuz.toFixed(2) }} kg CO2e</strong>
+      </div>
+      <div class="result-item">
+        <span>Vehículo</span>
+        <strong>{{ huellaCombustible.toFixed(2) }} kg CO2e</strong>
+      </div>
+      <div class="result-total">
+        <span>Huella total</span>
+        <strong>{{ huellaTotal.toFixed(2) }} kg CO2e</strong>
+      </div>
+    </div>
+  </section>
+</div>

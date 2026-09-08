@@ -1,0 +1,271 @@
+.calculator-container {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 0 0 3rem;
+}
+
+.calc-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 1.5rem;
+  align-items: end;
+  margin-bottom: 1.5rem;
+  padding: 1.75rem;
+}
+
+.calc-header h1 {
+  max-width: 700px;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.calc-header-copy {
+  max-width: 640px;
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.header-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.header-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.header-summary strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--primary-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.manual-panel,
+.upload-section,
+.audit-section,
+.calc-results {
+  padding: 1.25rem;
+}
+
+.section-heading {
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.calc-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.input-card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.card-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.input-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.calc-actions,
+.upload-row {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.upload-section {
+  min-height: 100%;
+}
+
+.upload-row {
+  align-items: stretch;
+  margin-top: 0;
+}
+
+.file-drop {
+  position: relative;
+  display: grid;
+  flex: 1;
+  min-height: 5rem;
+  align-content: center;
+  gap: 0.2rem;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: var(--surface-soft);
+  cursor: pointer;
+}
+
+.file-drop input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.file-drop-title {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.file-drop-copy {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.period-row {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+.upload-info,
+.error-text,
+.save-message {
+  margin: 0.85rem 0 0;
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+
+.upload-info,
+.save-message {
+  color: var(--primary-strong);
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+.audit-section,
+.calc-results {
+  margin-top: 1rem;
+}
+
+table a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+table a:hover {
+  text-decoration: underline;
+}
+
+.calc-results {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.calc-results .eyebrow {
+  color: #9dc2b4;
+}
+
+.calc-results h2 {
+  color: #fff;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.result-item,
+.result-total {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.result-item span,
+.result-total span {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.result-item strong,
+.result-total strong {
+  color: #fff;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+}
+
+.result-total {
+  background: rgba(31, 92, 75, 0.35);
+  border-color: rgba(31, 92, 75, 0.5);
+}
+
+@media (max-width: 860px) {
+  .calc-header,
+  .content-grid,
+  .result-grid,
+  .header-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .calc-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .calc-header,
+  .manual-panel,
+  .upload-section,
+  .audit-section,
+  .calc-results {
+    padding: 1rem;
+  }
+
+  .calc-cards,
+  .calc-actions,
+  .upload-row {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+}

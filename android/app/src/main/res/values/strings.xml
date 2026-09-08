@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">huella-carbono-app</string>
+    <string name="title_activity_main">huella-carbono-app</string>
+    <string name="package_name">com.jhonatan.huellacarbono</string>
+    <string name="custom_url_scheme">com.jhonatan.huellacarbono</string>
+</resources>

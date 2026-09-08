@@ -1,0 +1,166 @@
+.dashboard-container {
+  width: min(1280px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 0 0 3rem;
+}
+
+.error-banner {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border-color: var(--danger-soft);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.error-banner p {
+  margin-top: 0.25rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.page-heading {
+  margin-bottom: 1.5rem;
+}
+
+.page-heading h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.kpi-card {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kpi-card-accent {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.kpi-card-warning {
+  border-color: #f3c78a;
+  background: var(--warning-soft);
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.kpi-value {
+  margin: 0.15rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.kpi-value-warning {
+  color: var(--warning);
+}
+
+.kpi-unit {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.kpi-trend {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.kpi-trend-up {
+  color: var(--danger);
+}
+
+.kpi-trend-down {
+  color: var(--primary-strong);
+}
+
+.kpi-empty {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.kpi-footnote {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.kpi-footnote-warning {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.kpi-footnote-success {
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
+.chart-card {
+  margin-top: 1rem;
+  padding: 1.5rem;
+}
+
+.chart-card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+.skeleton {
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-title {
+  height: 1.75rem;
+  width: 220px;
+  margin-bottom: 1.5rem;
+}
+
+.skeleton-card {
+  height: 130px;
+}
+
+.skeleton-chart {
+  height: 320px;
+  margin-top: 1rem;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

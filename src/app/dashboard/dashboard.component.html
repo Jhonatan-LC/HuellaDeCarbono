@@ -1,0 +1,107 @@
+<app-topbar></app-topbar>
+
+<div class="dashboard-container">
+  <div *ngIf="error" class="card error-banner">
+    <strong>Error de conexión.</strong> {{ error }}
+    <p>Verifica que el backend Django esté corriendo en el puerto correcto.</p>
+  </div>
+
+  <div *ngIf="kpis$ | async as kpis; else loading">
+    <div class="page-heading">
+      <p class="eyebrow">Vista general</p>
+      <h1>Resumen general</h1>
+    </div>
+
+    <div class="kpi-grid">
+      <!-- 1. Gasto del Mes -->
+      <div class="card kpi-card kpi-card-accent">
+        <div class="kpi-card-head">
+          <span class="kpi-label">Gasto del mes</span>
+        </div>
+        <p *ngIf="kpis.gasto_mes_actual.monto_clp !== null" class="kpi-value">
+          {{ kpis.gasto_mes_actual.monto_clp | number:'1.0-0':'es' }} <span class="kpi-unit">CLP</span>
+        </p>
+        <p *ngIf="kpis.gasto_mes_actual.monto_clp === null" class="kpi-empty">
+          Aún no hay boletas para este mes.
+        </p>
+        <p class="kpi-footnote">{{ kpis.gasto_mes_actual.periodo }}</p>
+      </div>
+
+      <!-- 2. Racha de Meses -->
+      <div class="card kpi-card">
+        <div class="kpi-card-head">
+          <span class="kpi-label">Racha de reportes</span>
+        </div>
+        <p class="kpi-value">{{ kpis.racha_meses.cantidad }} <span class="kpi-unit">meses</span></p>
+        <p *ngIf="!kpis.racha_meses.activa && kpis.racha_meses.cantidad > 0" class="kpi-footnote kpi-footnote-warning">
+          Sube tu boleta de este mes para mantenerla.
+        </p>
+        <p *ngIf="kpis.racha_meses.activa" class="kpi-footnote kpi-footnote-success">
+          Racha activa.
+        </p>
+        <p *ngIf="kpis.racha_meses.cantidad === 0" class="kpi-footnote">
+          Sube tu primera boleta para empezar.
+        </p>
+      </div>
+
+      <!-- 3. Alerta de Anomalía -->
+      <div class="card kpi-card" [class.kpi-card-warning]="kpis.alerta_anomalia.detectada">
+        <div class="kpi-card-head">
+          <span class="kpi-label">Alerta de consumo</span>
+        </div>
+        <div *ngIf="kpis.alerta_anomalia.detectada">
+          <p class="kpi-value kpi-value-warning">Atención</p>
+          <p class="kpi-footnote">{{ kpis.alerta_anomalia.mensaje }}</p>
+        </div>
+        <div *ngIf="!kpis.alerta_anomalia.detectada">
+          <p class="kpi-value">Normal</p>
+          <p class="kpi-footnote">Tu consumo está dentro de los rangos esperados.</p>
+        </div>
+      </div>
+
+      <!-- 4. Comparativa Anual -->
+      <div class="card kpi-card">
+        <div class="kpi-card-head">
+          <span class="kpi-label">Comparativa anual</span>
+        </div>
+        <div *ngIf="kpis.comparativa_anual.disponible; else noComparativa">
+          <p class="kpi-value">
+            {{ kpis.comparativa_anual.porcentaje_variacion | number:'1.0-1' }}%
+            <span class="kpi-trend" [class.kpi-trend-up]="kpis.comparativa_anual.porcentaje_variacion! > 0" [class.kpi-trend-down]="kpis.comparativa_anual.porcentaje_variacion! <= 0">
+              {{ kpis.comparativa_anual.porcentaje_variacion! > 0 ? 'más' : 'menos' }}
+            </span>
+          </p>
+          <p class="kpi-footnote">que el mismo mes de {{ currentYear - 1 }}</p>
+        </div>
+        <ng-template #noComparativa>
+          <p class="kpi-empty">No hay suficientes datos para comparar con el año anterior.</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="card chart-card">
+      <h2>Huella de carbono por categoría</h2>
+      <div class="chart-wrapper">
+        <canvas baseChart
+          [data]="barChartData"
+          [options]="barChartOptions"
+          [type]="barChartType"
+          [legend]="barChartLegend">
+        </canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #loading>
+  <div class="dashboard-container">
+    <div class="skeleton skeleton-title"></div>
+    <div class="kpi-grid">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
+    <div class="skeleton skeleton-chart"></div>
+  </div>
+</ng-template>
