@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-9^0hm63z5&e3u#xa_b5nre57@id0cv5gs)5%s#(b1j0!-=f*$s'
+# Set DJANGO_SECRET_KEY in the environment for staging/production. Locally it
+# falls back to an insecure placeholder so `manage.py runserver` keeps working
+# with zero setup.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if os.environ.get('DJANGO_DEBUG', 'True') != 'True':
+        raise RuntimeError('DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is not True')
+    SECRET_KEY = 'django-insecure-local-dev-only-do-not-deploy'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '[::1]']
+ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,[::1]').split(',') if h]
 
 
 # Application definition

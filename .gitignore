@@ -55,4 +55,5 @@ huella-carbono-backend/media/
 huella-carbono-backend/venv/
 huella-carbono-backend/__pycache__/
 huella-carbono-backend/**/__pycache__/
+huella-carbono-backend/.env
 *.pyc
