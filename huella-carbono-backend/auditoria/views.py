@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .extractor import extraer_valor_boleta
-from .models import RegistroBoleta
+from .models import CategoriaEmision, RegistroBoleta
 from .organizaciones import organizacion_activa
 
 
@@ -15,6 +15,20 @@ class CsrfExemptSessionAuthentication(SessionAuthentication):
 
 def serializar_registro(registro):
     archivo_url = registro.archivo.url if registro.archivo else None
+
+    actividades_con_calculo = [a for a in registro.actividades.all() if hasattr(a, 'calculo')]
+    co2_total = sum((a.calculo.resultado_kg_co2e for a in actividades_con_calculo), start=0)
+    detalle = [
+        {
+            "categoria_codigo": a.categoria.codigo,
+            "categoria_nombre": a.categoria.nombre,
+            "alcance": a.categoria.alcance,
+            "cantidad": float(a.cantidad),
+            "unidad": a.categoria.unidad_actividad,
+            "co2_kg": float(a.calculo.resultado_kg_co2e),
+        }
+        for a in actividades_con_calculo
+    ]
 
     return {
         "id": str(registro.id),
@@ -28,6 +42,8 @@ def serializar_registro(registro):
         "creado_en": registro.creado_en.isoformat(),
         "estado": registro.estado,
         "origen": registro.origen,
+        "co2_total_kg": float(co2_total),
+        "actividades_detalle": detalle,
     }
 
 
@@ -94,19 +110,28 @@ class RegistrarConsumoView(APIView):
 
     def post(self, request):
         periodo = str(request.data.get('periodo', '')).strip()
-        energia = request.data.get('energia_kwh')
-        combustible = request.data.get('combustible_litros')
+        actividades_raw = request.data.get('actividades')
 
         if not periodo:
             return Response({"detail": "El periodo es obligatorio para guardar el registro."}, status=400)
 
-        try:
-            energia_valor = float(energia or 0)
-            combustible_valor = float(combustible or 0)
-        except (TypeError, ValueError):
-            return Response({"detail": "Los consumos deben ser números válidos."}, status=400)
+        if not isinstance(actividades_raw, dict):
+            return Response({"detail": "Debes enviar un objeto 'actividades' con al menos una categoría."}, status=400)
 
-        if energia_valor <= 0 and combustible_valor <= 0:
+        codigos_validos = set(CategoriaEmision.objects.filter(activa=True).values_list('codigo', flat=True))
+
+        actividades = {}
+        for codigo, cantidad in actividades_raw.items():
+            if codigo not in codigos_validos:
+                return Response({"detail": f"Categoría desconocida: {codigo}."}, status=400)
+            try:
+                valor = float(cantidad or 0)
+            except (TypeError, ValueError):
+                return Response({"detail": "Los consumos deben ser números válidos."}, status=400)
+            if valor > 0:
+                actividades[codigo] = valor
+
+        if not actividades:
             return Response({"detail": "Ingresa al menos un consumo mayor a cero."}, status=400)
 
         registro = RegistroBoleta.objects.create(
@@ -116,8 +141,7 @@ class RegistrarConsumoView(APIView):
             origen='Manual',
             usuario=request.user,
             valor_extraido={
-                "energia_kwh": energia_valor,
-                "combustible_litros": combustible_valor,
+                "actividades": actividades,
                 "periodo": periodo,
             },
             mensaje_procesamiento='Registro ingresado manualmente.',

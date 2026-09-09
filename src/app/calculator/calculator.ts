@@ -10,9 +10,32 @@ interface RegistroBoleta {
   periodo_referencia: string;
   periodo?: string;
   archivo_url: string | null;
-  valor_extraido: { energia_kwh: number | null; combustible_litros: number | null; periodo: string | null };
+  valor_extraido: {
+    energia_kwh?: number | null;
+    combustible_litros?: number | null;
+    actividades?: Record<string, number>;
+    periodo: string | null;
+  };
   estado: 'Procesado' | 'Pendiente' | 'Error';
   origen: 'Manual' | 'Boleta';
+  co2_total_kg?: number;
+  actividades_detalle?: ActividadDetalle[];
+}
+
+interface ActividadDetalle {
+  categoria_codigo: string;
+  categoria_nombre: string;
+  alcance: number;
+  cantidad: number;
+  unidad: string;
+  co2_kg: number;
+}
+
+interface Categoria {
+  codigo: string;
+  nombre: string;
+  alcance: number;
+  unidad_actividad: string;
 }
 
 @Component({
@@ -23,12 +46,13 @@ interface RegistroBoleta {
   styleUrl: './calculator.css'
 })
 export class Calculator implements OnInit {
-  consumoLuzKwh: number | null = null;
-  consumoCombustibleLitros: number | null = null;
+  categoriasAlcance1: Categoria[] = [];
+  categoriasAlcance2: Categoria[] = [];
+  categoriasAlcance3: Categoria[] = [];
+  cantidades: Record<string, number | null> = {};
   periodoManual: string = '';
 
-  huellaLuz: number = 0;
-  huellaCombustible: number = 0;
+  ultimoResultado: ActividadDetalle[] = [];
   huellaTotal: number = 0;
 
   selectedFile: File | null = null;
@@ -36,32 +60,24 @@ export class Calculator implements OnInit {
   uploadError: string | null = null;
   uploadInProgress = false;
   isSubiendo = false;
+  isGuardando = false;
   historialBoletas: RegistroBoleta[] = [];
   saveMessage: string | null = null;
-
-  // kg CO2e por kWh — Chile 2024, energiaabierta.cl (debe coincidir con el factor 'electricidad' sembrado en el backend)
-  readonly FACTOR_LUZ = 0.2021;
-  // kg CO2 por litro de diésel (debe coincidir con el factor 'combustible' sembrado en el backend)
-  readonly FACTOR_COMBUSTIBLE = 2.68;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
+    this.cargarCategorias();
     this.cargarHistorial();
   }
 
   calcularHuella() {
-    this.huellaLuz = (this.consumoLuzKwh || 0) * this.FACTOR_LUZ;
-    this.huellaCombustible = (this.consumoCombustibleLitros || 0) * this.FACTOR_COMBUSTIBLE;
-    this.huellaTotal = this.huellaLuz + this.huellaCombustible;
     this.guardarConsumoManual();
   }
 
   limpiarFormulario() {
-    this.consumoLuzKwh = null;
-    this.consumoCombustibleLitros = null;
-    this.huellaLuz = 0;
-    this.huellaCombustible = 0;
+    this.cantidades = {};
+    this.ultimoResultado = [];
     this.huellaTotal = 0;
     this.saveMessage = null;
   }
@@ -69,7 +85,8 @@ export class Calculator implements OnInit {
   formatValorExtraido(boleta: RegistroBoleta) {
     const energia = boleta.valor_extraido?.energia_kwh;
     const combustible = boleta.valor_extraido?.combustible_litros;
-    const values = [];
+    const actividades = boleta.valor_extraido?.actividades;
+    const values: string[] = [];
 
     if (energia !== null && energia !== undefined) {
       values.push(`${energia} kWh`);
@@ -77,6 +94,12 @@ export class Calculator implements OnInit {
 
     if (combustible !== null && combustible !== undefined) {
       values.push(`${combustible} L`);
+    }
+
+    if (actividades) {
+      for (const [codigo, cantidad] of Object.entries(actividades)) {
+        values.push(`${codigo}: ${cantidad}`);
+      }
     }
 
     return values.length > 0 ? values.join(' / ') : 'Sin datos';
@@ -125,7 +148,6 @@ export class Calculator implements OnInit {
     this.http.post<RegistroBoleta>('http://localhost:8000/api/boletas/upload/', formData, { withCredentials: true })
       .subscribe({
         next: (response) => {
-          console.log('Exito', response);
           alert('Boleta subida correctamente para auditoría');
           if (response) {
             this.historialBoletas.unshift(response);
@@ -144,10 +166,33 @@ export class Calculator implements OnInit {
       });
   }
 
+  private cargarCategorias() {
+    this.http.get<Categoria[]>('http://localhost:8000/api/categorias/', { withCredentials: true })
+      .subscribe({
+        next: (categorias) => {
+          this.categoriasAlcance1 = categorias.filter((c) => c.alcance === 1);
+          this.categoriasAlcance2 = categorias.filter((c) => c.alcance === 2);
+          this.categoriasAlcance3 = categorias.filter((c) => c.alcance === 3);
+        },
+        error: () => {
+          this.categoriasAlcance1 = [];
+          this.categoriasAlcance2 = [];
+          this.categoriasAlcance3 = [];
+        }
+      });
+  }
+
   private guardarConsumoManual() {
     this.saveMessage = null;
 
-    if (this.huellaTotal <= 0) {
+    const actividades: Record<string, number> = {};
+    for (const [codigo, cantidad] of Object.entries(this.cantidades)) {
+      if (cantidad && cantidad > 0) {
+        actividades[codigo] = cantidad;
+      }
+    }
+
+    if (Object.keys(actividades).length === 0) {
       this.uploadError = 'Ingresa al menos un consumo mayor a cero.';
       return;
     }
@@ -157,21 +202,22 @@ export class Calculator implements OnInit {
       return;
     }
 
+    this.isGuardando = true;
     this.http.post<RegistroBoleta>(
       'http://localhost:8000/api/consumos/registrar/',
-      {
-        periodo: this.periodoManual,
-        energia_kwh: this.consumoLuzKwh || 0,
-        combustible_litros: this.consumoCombustibleLitros || 0,
-      },
+      { periodo: this.periodoManual, actividades },
       { withCredentials: true }
     ).subscribe({
       next: (registro) => {
+        this.isGuardando = false;
         this.historialBoletas.unshift(registro);
+        this.ultimoResultado = registro.actividades_detalle || [];
+        this.huellaTotal = registro.co2_total_kg || 0;
         this.saveMessage = 'Registro guardado en tu historial.';
         this.uploadError = null;
       },
       error: (err: HttpErrorResponse) => {
+        this.isGuardando = false;
         this.saveMessage = null;
         this.uploadError = err.error?.detail || 'No se pudo guardar el cálculo en el backend.';
       }

@@ -17,39 +17,83 @@ import { AuthService } from './auth.service';
 
         <form (ngSubmit)="login()" class="auth-form">
           <div>
-            <label for="username">Usuario</label>
+            <label for="username">Usuario o email</label>
             <input id="username" [(ngModel)]="username" name="username" autocomplete="username" required />
           </div>
 
           <div>
             <label for="password">Contraseña</label>
-            <input id="password" [(ngModel)]="password" name="password" type="password" autocomplete="current-password" required />
+            <div class="password-field">
+              <input
+                id="password"
+                [(ngModel)]="password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              >
+                {{ showPassword ? '🙈' : '👁️' }}
+              </button>
+            </div>
           </div>
 
-          <button type="submit" class="btn btn-primary">Entrar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting">
+            {{ submitting ? 'Entrando...' : 'Entrar' }}
+          </button>
         </form>
 
-        <p class="message" *ngIf="message">{{ message }}</p>
+        <p class="message" *ngIf="message">
+          {{ message }}
+          <a *ngIf="requiresVerification" [routerLink]="['/verificar-correo']" [queryParams]="{ username }">
+            Verificar ahora
+          </a>
+        </p>
         <a routerLink="/registro" class="auth-link">¿No tienes cuenta? Crea una</a>
       </section>
     </main>
   `,
+  styles: [`
+    .password-field { display: flex; align-items: center; gap: 0.5rem; }
+    .password-field input { flex: 1; }
+    .password-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.25rem;
+    }
+  `],
 })
 export class LoginComponent {
   username = '';
   password = '';
+  showPassword = false;
+  submitting = false;
   message = '';
+  requiresVerification = false;
 
   constructor(private auth: AuthService, private router: Router) {}
 
   login() {
+    this.submitting = true;
+    this.message = '';
+    this.requiresVerification = false;
     this.auth.login({ username: this.username, password: this.password }).subscribe({
       next: () => {
         this.router.navigate(['/dashboard']);
       },
-      error: () => {
-        this.message = 'Credenciales inválidas.';
-      }
+      error: (err) => {
+        this.submitting = false;
+        this.message = err?.error?.detail || 'Credenciales inválidas.';
+        this.requiresVerification = !!err?.error?.requires_verification;
+      },
     });
   }
 }

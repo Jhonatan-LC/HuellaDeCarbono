@@ -130,6 +130,18 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Email (verificación de cuenta)
+# Sin DJANGO_EMAIL_BACKEND definido, los correos se imprimen en la consola del
+# servidor en vez de enviarse de verdad — útil para desarrollo sin SMTP real.
+EMAIL_BACKEND = os.environ.get('DJANGO_EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_DEFAULT_FROM_EMAIL', 'no-reply@huelladecarbono.local')
+EMAIL_HOST = os.environ.get('DJANGO_EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('DJANGO_EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('DJANGO_EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('DJANGO_EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('DJANGO_EMAIL_USE_TLS', 'True') == 'True'
+VERIFICATION_CODE_TTL_MINUTES = 15
+
 # Permitir conexión desde Angular
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',

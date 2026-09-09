@@ -88,6 +88,7 @@ def resincronizar_actividades_boleta(boleta):
     periodo = boleta.periodo_referencia
     origen = 'ocr' if boleta.origen == 'Boleta' else 'manual'
 
+    # Boletas OCR (electricidad/combustible): campos fijos en la raíz de valor_extraido.
     energia = valor_extraido.get('energia_kwh')
     if energia:
         registrar_actividad(boleta.usuario, boleta.organizacion, 'electricidad', periodo, energia, origen=origen, fuente_boleta=boleta)
@@ -95,3 +96,8 @@ def resincronizar_actividades_boleta(boleta):
     combustible = valor_extraido.get('combustible_litros')
     if combustible:
         registrar_actividad(boleta.usuario, boleta.organizacion, 'combustible', periodo, combustible, origen=origen, fuente_boleta=boleta)
+
+    # Registro manual genérico: cualquier categoría sembrada, bajo valor_extraido['actividades'].
+    actividades = valor_extraido.get('actividades') or {}
+    for categoria_codigo, cantidad in actividades.items():
+        registrar_actividad(boleta.usuario, boleta.organizacion, categoria_codigo, periodo, cantidad, origen=origen, fuente_boleta=boleta)

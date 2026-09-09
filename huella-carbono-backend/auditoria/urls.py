@@ -1,6 +1,15 @@
 from django.urls import path
 from .analytics_views import CarbonFootprintAnalyticsView
-from .auth_views import csrf_token, login_view, logout_view, me_view, register_view
+from .categorias_views import CategoriasEmisionView
+from .auth_views import (
+    csrf_token,
+    login_view,
+    logout_view,
+    me_view,
+    register_view,
+    resend_verification_view,
+    verify_email_view,
+)
 from .correcciones_views import CorregirBoletaView
 from .dashboard_views import DashboardKPIView
 from .views import HistorialBoletasView, RegistrarConsumoView, SubirBoletaView
@@ -12,7 +21,10 @@ urlpatterns = [
     path('boletas/historial/', HistorialBoletasView.as_view(), name='historial-boletas'),
     path('boletas/<uuid:pk>/corregir/', CorregirBoletaView.as_view(), name='corregir-boleta'),
     path('consumos/registrar/', RegistrarConsumoView.as_view(), name='registrar-consumo'),
+    path('categorias/', CategoriasEmisionView.as_view(), name='categorias-emision'),
     path('auth/register/', register_view, name='register'),
+    path('auth/verify-email/', verify_email_view, name='verify-email'),
+    path('auth/resend-verification/', resend_verification_view, name='resend-verification'),
     path('auth/login/', login_view, name='login'),
     path('auth/logout/', logout_view, name='logout'),
     path('auth/me/', me_view, name='me'),

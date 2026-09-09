@@ -1,9 +1,14 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs';
 
 interface AuthResponse {
   user: { id: number; username: string; email: string };
+}
+
+interface RegisterResponse {
+  detail: string;
+  username: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -12,12 +17,26 @@ export class AuthService {
   private readonly authState = new BehaviorSubject<boolean>(false);
   public readonly isAuthenticated$ = this.authState.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // Ensures the csrftoken cookie exists before any state-changing request
+    // (register/login/logout), which the csrfInterceptor then attaches
+    // as the X-CSRFToken header.
+    this.http.get(`${this.baseUrl}/csrf/`, { withCredentials: true }).subscribe();
+  }
 
-  register(payload: { username: string; email: string; password: string }) {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/register/`, payload, { withCredentials: true }).pipe(
+  register(payload: { username: string; email: string; password: string; password_confirm: string }) {
+    // Account starts inactive until the emailed code is verified — no session yet.
+    return this.http.post<RegisterResponse>(`${this.baseUrl}/register/`, payload, { withCredentials: true });
+  }
+
+  verifyEmail(payload: { username: string; codigo: string }) {
+    return this.http.post<AuthResponse>(`${this.baseUrl}/verify-email/`, payload, { withCredentials: true }).pipe(
       tap(() => this.authState.next(true))
     );
+  }
+
+  resendVerification(payload: { username: string }) {
+    return this.http.post<{ detail: string }>(`${this.baseUrl}/resend-verification/`, payload, { withCredentials: true });
   }
 
   login(payload: { username: string; password: string }) {

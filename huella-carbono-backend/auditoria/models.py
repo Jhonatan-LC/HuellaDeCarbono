@@ -4,6 +4,31 @@ from django.utils import timezone
 import uuid
 
 
+class CodigoVerificacionEmail(models.Model):
+    """Código de un solo uso para confirmar que el email de registro es real."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='codigos_verificacion',
+    )
+    codigo = models.CharField(max_length=6)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    expira_en = models.DateTimeField()
+    usado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-creado_en']
+        verbose_name = 'Código de verificación de email'
+        verbose_name_plural = 'Códigos de verificación de email'
+
+    def vigente(self):
+        return not self.usado and timezone.now() < self.expira_en
+
+    def __str__(self):
+        return f'{self.usuario.username} ({"usado" if self.usado else "pendiente"})'
+
+
 class Organizacion(models.Model):
     """Raíz del tenant (hogar u organización). Hoy hay un usuario por cuenta,
     pero toda propiedad de datos ya cuelga de acá, no del usuario directamente."""

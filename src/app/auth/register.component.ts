@@ -28,10 +28,55 @@ import { AuthService } from './auth.service';
 
           <div>
             <label for="password">Contraseña</label>
-            <input id="password" [(ngModel)]="password" name="password" type="password" autocomplete="new-password" required />
+            <div class="password-field">
+              <input
+                id="password"
+                [(ngModel)]="password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                autocomplete="new-password"
+                required
+                minlength="8"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              >
+                {{ showPassword ? '🙈' : '👁️' }}
+              </button>
+            </div>
           </div>
 
-          <button type="submit" class="btn btn-primary">Registrarme</button>
+          <div>
+            <label for="passwordConfirm">Confirmar contraseña</label>
+            <div class="password-field">
+              <input
+                id="passwordConfirm"
+                [(ngModel)]="passwordConfirm"
+                name="passwordConfirm"
+                [type]="showPasswordConfirm ? 'text' : 'password'"
+                autocomplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="showPasswordConfirm = !showPasswordConfirm"
+                [attr.aria-label]="showPasswordConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              >
+                {{ showPasswordConfirm ? '🙈' : '👁️' }}
+              </button>
+            </div>
+            <p class="field-error" *ngIf="passwordConfirm && password !== passwordConfirm">
+              Las contraseñas no coinciden.
+            </p>
+          </div>
+
+          <button type="submit" class="btn btn-primary" [disabled]="submitting">
+            {{ submitting ? 'Creando cuenta...' : 'Registrarme' }}
+          </button>
         </form>
 
         <p class="message" *ngIf="message">{{ message }}</p>
@@ -39,23 +84,55 @@ import { AuthService } from './auth.service';
       </section>
     </main>
   `,
+  styles: [`
+    .password-field { display: flex; align-items: center; gap: 0.5rem; }
+    .password-field input { flex: 1; }
+    .password-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.25rem;
+    }
+    .field-error { color: #c0392b; font-size: 0.85rem; margin: 0.25rem 0 0; }
+  `],
 })
 export class RegisterComponent {
   username = '';
   email = '';
   password = '';
+  passwordConfirm = '';
+  showPassword = false;
+  showPasswordConfirm = false;
+  submitting = false;
   message = '';
 
   constructor(private auth: AuthService, private router: Router) {}
 
   register() {
-    this.auth.register({ username: this.username, email: this.email, password: this.password }).subscribe({
-      next: () => {
-        this.router.navigate(['/dashboard']);
-      },
-      error: () => {
-        this.message = 'No se pudo crear la cuenta.';
-      }
-    });
+    if (this.password !== this.passwordConfirm) {
+      this.message = 'Las contraseñas no coinciden.';
+      return;
+    }
+
+    this.submitting = true;
+    this.message = '';
+    this.auth
+      .register({
+        username: this.username,
+        email: this.email,
+        password: this.password,
+        password_confirm: this.passwordConfirm,
+      })
+      .subscribe({
+        next: () => {
+          this.router.navigate(['/verificar-correo'], { queryParams: { username: this.username } });
+        },
+        error: (err) => {
+          this.submitting = false;
+          this.message = err?.error?.detail || 'No se pudo crear la cuenta.';
+        },
+      });
   }
 }
