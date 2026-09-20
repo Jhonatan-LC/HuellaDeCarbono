@@ -1,13 +1,12 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     <main class="auth-page">
       <section class="auth-card card">
@@ -48,12 +47,16 @@ import { AuthService } from './auth.service';
           </button>
         </form>
 
-        <p class="message" *ngIf="message">
-          {{ message }}
-          <a *ngIf="requiresVerification" [routerLink]="['/verificar-correo']" [queryParams]="{ username }">
-            Verificar ahora
-          </a>
-        </p>
+        @if (message) {
+          <p class="message">
+            {{ message }}
+            @if (requiresVerification) {
+              <a [routerLink]="['/verificar-correo']" [queryParams]="{ username }">
+                Verificar ahora
+              </a>
+            }
+          </p>
+        }
         <a routerLink="/registro" class="auth-link">¿No tienes cuenta? Crea una</a>
       </section>
     </main>
@@ -79,7 +82,7 @@ export class LoginComponent {
   message = '';
   requiresVerification = false;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private cdr: ChangeDetectorRef) {}
 
   login() {
     this.submitting = true;
@@ -93,6 +96,7 @@ export class LoginComponent {
         this.submitting = false;
         this.message = err?.error?.detail || 'Credenciales inválidas.';
         this.requiresVerification = !!err?.error?.requires_verification;
+        this.cdr.markForCheck();
       },
     });
   }

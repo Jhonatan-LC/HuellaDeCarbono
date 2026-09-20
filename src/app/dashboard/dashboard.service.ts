@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CarbonFootprintData {
   name: string;
@@ -46,8 +47,8 @@ export interface DashboardKpis {
   providedIn: 'root'
 })
 export class DashboardService {
-  private kpisUrl = 'http://localhost:8000/api/dashboard/kpis/';
-  private analyticsUrl = 'http://localhost:8000/api/analytics/carbon-footprint/';
+  private kpisUrl = `${environment.apiBaseUrl}/api/dashboard/kpis/`;
+  private analyticsUrl = `${environment.apiBaseUrl}/api/analytics/carbon-footprint/`;
 
   constructor(private http: HttpClient) {}
 

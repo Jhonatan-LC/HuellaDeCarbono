@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { ThemeService } from './theme.service';
 
 @Component({
   selector: 'app-topbar',
@@ -17,6 +18,15 @@ import { AuthService } from '../auth/auth.service';
           <a class="nav-link" routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
           <a class="nav-link" routerLink="/calculadora" routerLinkActive="active">Calculadora</a>
           <a class="nav-link" routerLink="/historial" routerLinkActive="active">Historial</a>
+          <a class="nav-link" routerLink="/analitica" routerLinkActive="active">Analítica</a>
+          <button
+            type="button"
+            class="nav-link theme-toggle"
+            (click)="theme.toggle()"
+            [attr.aria-label]="theme.current() === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+          >
+            {{ theme.current() === 'dark' ? '☀️' : '🌙' }}
+          </button>
           <button type="button" class="nav-link nav-link-logout" (click)="logout()">Salir</button>
         </div>
       </div>
@@ -32,10 +42,14 @@ import { AuthService } from '../auth/auth.service';
       cursor: pointer;
       font: inherit;
     }
+    .theme-toggle {
+      padding: 0.5rem 0.65rem;
+      line-height: 1;
+    }
   `]
 })
 export class TopbarComponent {
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, public theme: ThemeService) {}
 
   logout() {
     this.auth.logout().subscribe({

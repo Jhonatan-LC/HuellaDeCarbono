@@ -26,59 +26,105 @@
         >
       </div>
 
-      <div class="scope-group" *ngIf="categoriasAlcance1.length">
-        <h3 class="scope-title">Alcance 1 <span>Emisiones directas</span></h3>
-        <div class="calc-cards">
-          <div class="input-card" *ngFor="let cat of categoriasAlcance1">
-            <h4>{{ cat.nombre }}</h4>
-            <label [for]="cat.codigo">Cantidad ({{ cat.unidad_actividad }})</label>
-            <input
-              type="number"
-              min="0"
-              [id]="cat.codigo"
-              [(ngModel)]="cantidades[cat.codigo]"
-              [name]="cat.codigo"
-              placeholder="0"
-            >
-          </div>
+      @if (ubicaciones.length) {
+        <div class="input-card period-card">
+          <label for="ubicacionManual">Planta / filial (opcional)</label>
+          <app-ubicacion-select
+            id="ubicacionManual"
+            [ubicaciones]="ubicaciones"
+            [value]="ubicacionSeleccionada"
+            (valueChange)="ubicacionSeleccionada = $event"
+          ></app-ubicacion-select>
         </div>
-      </div>
+      }
 
-      <div class="scope-group" *ngIf="categoriasAlcance2.length">
-        <h3 class="scope-title">Alcance 2 <span>Energía comprada</span></h3>
-        <div class="calc-cards">
-          <div class="input-card" *ngFor="let cat of categoriasAlcance2">
-            <h4>{{ cat.nombre }}</h4>
-            <label [for]="cat.codigo">Cantidad ({{ cat.unidad_actividad }})</label>
-            <input
-              type="number"
-              min="0"
-              [id]="cat.codigo"
-              [(ngModel)]="cantidades[cat.codigo]"
-              [name]="cat.codigo"
-              placeholder="0"
-            >
-          </div>
+      @if (categoriasAlcance1.length) {
+        <div class="scope-group">
+          <button type="button" class="scope-title scope-title-1" (click)="toggleScope(1)">
+            <span class="scope-chevron" [class.open]="scopeExpandido[1]">▸</span>
+            Alcance 1 <span>Emisiones directas</span>
+          </button>
+          @if (scopeExpandido[1]) {
+            <div class="calc-cards">
+              @for (cat of categoriasAlcance1; track cat.codigo) {
+                <div class="input-card">
+                  <h4><span class="input-card-icon">{{ icono(cat.codigo) }}</span> {{ cat.nombre }}</h4>
+                  <label [for]="cat.codigo">Cantidad ({{ cat.unidad_actividad }})</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [id]="cat.codigo"
+                    [(ngModel)]="cantidades[cat.codigo]"
+                    [name]="cat.codigo"
+                    placeholder="0"
+                  >
+                </div>
+              }
+            </div>
+          }
         </div>
-      </div>
+      }
 
-      <div class="scope-group" *ngIf="categoriasAlcance3.length">
-        <h3 class="scope-title">Alcance 3 <span>Otras emisiones indirectas</span></h3>
-        <div class="calc-cards">
-          <div class="input-card" *ngFor="let cat of categoriasAlcance3">
-            <h4>{{ cat.nombre }}</h4>
-            <label [for]="cat.codigo">Cantidad ({{ cat.unidad_actividad }})</label>
-            <input
-              type="number"
-              min="0"
-              [id]="cat.codigo"
-              [(ngModel)]="cantidades[cat.codigo]"
-              [name]="cat.codigo"
-              placeholder="0"
-            >
-          </div>
+      @if (categoriasAlcance2.length) {
+        <div class="scope-group">
+          <button type="button" class="scope-title scope-title-2" (click)="toggleScope(2)">
+            <span class="scope-chevron" [class.open]="scopeExpandido[2]">▸</span>
+            Alcance 2 <span>Energía comprada</span>
+          </button>
+          @if (scopeExpandido[2]) {
+            <div class="calc-cards">
+              @for (cat of categoriasAlcance2; track cat.codigo) {
+                <div class="input-card">
+                  <h4><span class="input-card-icon">{{ icono(cat.codigo) }}</span> {{ cat.nombre }}</h4>
+                  <label [for]="cat.codigo">Cantidad ({{ cat.unidad_actividad }})</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [id]="cat.codigo"
+                    [(ngModel)]="cantidades[cat.codigo]"
+                    [name]="cat.codigo"
+                    placeholder="0"
+                  >
+                </div>
+              }
+            </div>
+          }
         </div>
-      </div>
+      }
+
+      @if (categoriasAlcance3.length) {
+        <div class="scope-group">
+          <button type="button" class="scope-title scope-title-3" (click)="toggleScope(3)">
+            <span class="scope-chevron" [class.open]="scopeExpandido[3]">▸</span>
+            Alcance 3 <span>Otras emisiones indirectas</span>
+          </button>
+          @if (scopeExpandido[3]) {
+            <div class="calc-cards">
+              @for (cat of categoriasAlcance3; track cat.codigo) {
+                <div class="input-card">
+                  <h4><span class="input-card-icon">{{ icono(cat.codigo) }}</span> {{ cat.nombre }}</h4>
+                  <label [for]="cat.codigo">Cantidad ({{ cat.unidad_actividad }})</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [id]="cat.codigo"
+                    [(ngModel)]="cantidades[cat.codigo]"
+                    [name]="cat.codigo"
+                    placeholder="0"
+                  >
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (tieneEstimado) {
+        <div class="live-estimate">
+          <span>Estimado</span>
+          <strong>{{ estimadoKgCo2e | compactoKgCo2e }}</strong>
+        </div>
+      }
 
       <div class="calc-actions">
         <button class="btn btn-primary" type="button" (click)="calcularHuella()" [disabled]="isGuardando">
@@ -86,8 +132,12 @@
         </button>
         <button class="btn btn-secondary" type="button" (click)="limpiarFormulario()">Limpiar</button>
       </div>
-      <p class="save-message" *ngIf="saveMessage">{{ saveMessage }}</p>
-      <p class="error-text" *ngIf="uploadError">{{ uploadError }}</p>
+      @if (saveMessage) {
+        <p class="save-message">{{ saveMessage }}</p>
+      }
+      @if (uploadError) {
+        <p class="error-text">{{ uploadError }}</p>
+      }
     </section>
 
     <section class="upload-section card" aria-labelledby="upload-title">
@@ -109,61 +159,92 @@
         <label for="periodo">Periodo</label>
         <input id="periodo" type="text" [(ngModel)]="periodo" placeholder="Ej: 2026-06">
       </div>
-      <p class="upload-info" *ngIf="selectedFile">Archivo seleccionado: {{ selectedFile.name }}</p>
 
-      <div class="audit-section" *ngIf="historialBoletas.length > 0">
-        <div class="section-heading">
-          <p class="eyebrow">Últimas cargas</p>
-          <h2>Historial reciente</h2>
+      @if (ubicaciones.length) {
+        <div class="period-row">
+          <label for="ubicacionBoleta">Planta / filial (opcional)</label>
+          <app-ubicacion-select
+            id="ubicacionBoleta"
+            [ubicaciones]="ubicaciones"
+            [value]="ubicacionSeleccionada"
+            (valueChange)="ubicacionSeleccionada = $event"
+          ></app-ubicacion-select>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Periodo</th>
-                <th>Archivo</th>
-                <th>Detalle</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let boleta of historialBoletas">
-                <td>{{ boleta.periodo_referencia }}</td>
-                <td>
-                  <a *ngIf="boleta.archivo_url; else registroManual" [href]="boleta.archivo_url" target="_blank">Ver PDF</a>
-                  <ng-template #registroManual>Manual</ng-template>
-                </td>
-                <td>{{ formatValorExtraido(boleta) }}</td>
-                <td>
-                  <span class="badge"
-                        [class.badge-Procesado]="boleta.estado === 'Procesado'"
-                        [class.badge-Pendiente]="boleta.estado === 'Pendiente'"
-                        [class.badge-Error]="boleta.estado === 'Error'">
-                    {{ boleta.estado }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      }
+      @if (selectedFile) {
+        <p class="upload-info">Archivo seleccionado: {{ selectedFile.name }}</p>
+      }
+
+      @if (historialBoletas.length > 0) {
+        <div class="audit-section">
+          <div class="section-heading">
+            <p class="eyebrow">Últimas cargas</p>
+            <h2>Historial reciente</h2>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Periodo</th>
+                  <th>Archivo</th>
+                  <th>Detalle</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (boleta of historialBoletas; track boleta.id) {
+                  <tr>
+                    <td>{{ boleta.periodo_referencia }}</td>
+                    <td>
+                      @if (boleta.archivo_url) {
+                        <a [href]="boleta.archivo_url" target="_blank">Ver PDF</a>
+                      } @else {
+                        Manual
+                      }
+                    </td>
+                    <td>{{ formatValorExtraido(boleta) }}</td>
+                    <td>
+                      <span class="badge"
+                            [class.badge-Procesado]="boleta.estado === 'Procesado'"
+                            [class.badge-Pendiente]="boleta.estado === 'Pendiente'"
+                            [class.badge-Error]="boleta.estado === 'Error'">
+                        {{ boleta.estado }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      }
     </section>
   </main>
 
-  <section class="calc-results card" *ngIf="huellaTotal > 0">
-    <div class="section-heading">
-      <p class="eyebrow">Resultado</p>
-      <h2>Resultado del último registro</h2>
-    </div>
-    <div class="result-grid">
-      <div class="result-item" *ngFor="let item of ultimoResultado">
-        <span>{{ item.categoria_nombre }} ({{ item.cantidad }} {{ item.unidad }})</span>
-        <strong>{{ item.co2_kg.toFixed(2) }} kg CO2e</strong>
+  @if (huellaTotal > 0) {
+    <section class="calc-results card">
+      <div class="section-heading">
+        <p class="eyebrow">Resultado</p>
+        <h2>Resultado del último registro</h2>
       </div>
-      <div class="result-total">
-        <span>Huella total</span>
-        <strong>{{ huellaTotal.toFixed(2) }} kg CO2e</strong>
+      <div class="result-grid">
+        @for (item of ultimoResultado; track item.categoria_codigo) {
+          <div class="result-item">
+            <span>{{ item.categoria_nombre }} ({{ item.cantidad }} {{ item.unidad }})</span>
+            <strong>{{ item.co2_kg.toFixed(2) }} kg CO2e</strong>
+          </div>
+        }
+        <div class="result-total">
+          <span>Huella total</span>
+          <strong>{{ huellaTotal.toFixed(2) }} kg CO2e</strong>
+          @if (comparativoMesAnterior?.disponible) {
+            <span class="result-trend" [class.up]="comparativoMesAnterior!.porcentaje > 0" [class.down]="comparativoMesAnterior!.porcentaje <= 0">
+              {{ comparativoMesAnterior!.porcentaje > 0 ? '▲' : '▼' }}
+              {{ comparativoMesAnterior!.porcentaje | number:'1.0-1' }}% vs. mes anterior
+            </span>
+          }
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  }
 </div>

@@ -1,13 +1,12 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     <main class="auth-page">
       <section class="auth-card card">
@@ -69,9 +68,11 @@ import { AuthService } from './auth.service';
                 {{ showPasswordConfirm ? '🙈' : '👁️' }}
               </button>
             </div>
-            <p class="field-error" *ngIf="passwordConfirm && password !== passwordConfirm">
-              Las contraseñas no coinciden.
-            </p>
+            @if (passwordConfirm && password !== passwordConfirm) {
+              <p class="field-error">
+                Las contraseñas no coinciden.
+              </p>
+            }
           </div>
 
           <button type="submit" class="btn btn-primary" [disabled]="submitting">
@@ -79,7 +80,9 @@ import { AuthService } from './auth.service';
           </button>
         </form>
 
-        <p class="message" *ngIf="message">{{ message }}</p>
+        @if (message) {
+          <p class="message">{{ message }}</p>
+        }
         <a routerLink="/login" class="auth-link">¿Ya tienes cuenta? Inicia sesión</a>
       </section>
     </main>
@@ -108,7 +111,7 @@ export class RegisterComponent {
   submitting = false;
   message = '';
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private cdr: ChangeDetectorRef) {}
 
   register() {
     if (this.password !== this.passwordConfirm) {
@@ -132,6 +135,7 @@ export class RegisterComponent {
         error: (err) => {
           this.submitting = false;
           this.message = err?.error?.detail || 'No se pudo crear la cuenta.';
+          this.cdr.markForCheck();
         },
       });
   }

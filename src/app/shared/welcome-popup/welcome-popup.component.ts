@@ -1,20 +1,21 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { UiService } from '../ui.service';
-import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-welcome-popup',
   standalone: true,
-  imports: [CommonModule],
+  imports: [AsyncPipe],
   template: `
-    <div *ngIf="ui.welcomePopupVisible$ | async" class="overlay">
-      <div class="popup-card">
-        <h2>Bienvenido</h2>
-        <p>Iniciaste sesión correctamente. Ya puedes registrar y analizar tus consumos.</p>
-        <button (click)="close()" class="btn btn-primary" style="width: 100%;">Entendido</button>
+    @if (ui.welcomePopupVisible$ | async) {
+      <div class="overlay">
+        <div class="popup-card">
+          <h2>Bienvenido</h2>
+          <p>Iniciaste sesión correctamente. Ya puedes registrar y analizar tus consumos.</p>
+          <button (click)="close()" class="btn btn-primary" style="width: 100%;">Entendido</button>
+        </div>
       </div>
-    </div>
+    }
   `,
   styles: [`
     .overlay {

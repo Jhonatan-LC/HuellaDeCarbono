@@ -96,10 +96,30 @@
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  width: 100%;
   margin: 0 0 0.65rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--primary-strong);
+  cursor: pointer;
+  text-align: left;
+}
+
+.scope-title-1 { color: var(--scope-1); }
+.scope-title-2 { color: var(--scope-2); }
+.scope-title-3 { color: var(--scope-3); }
+
+.scope-chevron {
+  display: inline-block;
+  font-size: 0.75rem;
+  transition: transform 0.15s ease;
+}
+
+.scope-chevron.open {
+  transform: rotate(90deg);
 }
 
 .scope-title span {
@@ -110,9 +130,39 @@
 
 .input-card h4 {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.3;
+}
+
+.input-card-icon {
+  font-size: 1rem;
+}
+
+.live-estimate {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--primary-strong);
+}
+
+.live-estimate span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted-strong);
+}
+
+.live-estimate strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .input-card {
@@ -228,9 +278,12 @@ table a:hover {
   text-decoration: underline;
 }
 
+/* Tarjeta "hero" del resultado: siempre oscura a propósito (el momento más gratificante
+   de la app), sin depender de --text — reusar ese token aquí se invierte en modo oscuro
+   (--text pasa a ser casi blanco) y el texto blanco de adentro queda ilegible. */
 .calc-results {
-  background: var(--text);
-  border-color: var(--text);
+  background: #0f2b23;
+  border-color: #0f2b23;
 }
 
 .calc-results .eyebrow {
@@ -272,6 +325,20 @@ table a:hover {
 .result-total {
   background: rgba(31, 92, 75, 0.35);
   border-color: rgba(31, 92, 75, 0.5);
+}
+
+.result-trend {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.result-trend.up {
+  color: #fca5a5;
+}
+
+.result-trend.down {
+  color: #86efac;
 }
 
 @media (max-width: 860px) {

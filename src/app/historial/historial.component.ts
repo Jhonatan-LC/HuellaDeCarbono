@@ -1,19 +1,36 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
+import { RouterLink } from '@angular/router';
 import { TopbarComponent } from '../shared/topbar.component';
+import { UiService } from '../shared/ui.service';
+import { environment } from '../../environments/environment';
 
 interface HistorialItem {
   id: string;
   archivo_url: string | null;
   periodo_referencia: string;
   procesado: boolean;
-  valor_extraido: { energia_kwh: number | null; combustible_litros: number | null; periodo: string | null };
+  valor_extraido: {
+    energia_kwh: number | null;
+    combustible_litros: number | null;
+    periodo: string | null;
+    actividades?: Record<string, number>;
+  };
   estado: string;
   creado_en: string;
+}
+
+interface Categoria {
+  codigo: string;
+  nombre: string;
+  unidad_actividad: string;
+}
+
+interface Chip {
+  label: string;
 }
 
 interface MonthlySummary {
@@ -29,7 +46,7 @@ const COLOR_LINE = '#e2e8f0';
 @Component({
   selector: 'app-historial',
   standalone: true,
-  imports: [CommonModule, FormsModule, BaseChartDirective, TopbarComponent],
+  imports: [FormsModule, BaseChartDirective, TopbarComponent, RouterLink],
   providers: [provideCharts(withDefaultRegisterables())],
   template: `
     <app-topbar></app-topbar>
@@ -44,115 +61,130 @@ const COLOR_LINE = '#e2e8f0';
         <span class="badge badge-success">{{ items.length }} registros</span>
       </div>
 
-      <section class="stats-grid" *ngIf="items.length; else emptyState">
-        <article class="card stat-card">
-          <span>Total de boletas</span>
-          <strong>{{ items.length }}</strong>
-        </article>
-        <article class="card stat-card stat-card-accent">
-          <span>Procesadas</span>
-          <strong>{{ processedCount }}</strong>
-        </article>
-        <article class="card stat-card stat-card-warning">
-          <span>En revisión</span>
-          <strong>{{ pendingCount }}</strong>
-        </article>
-      </section>
+      @if (items.length) {
+        <section class="stats-grid">
+          <article class="card stat-card">
+            <span>Total de boletas</span>
+            <strong>{{ items.length }}</strong>
+          </article>
+          <article class="card stat-card stat-card-accent">
+            <span>Procesadas</span>
+            <strong>{{ processedCount }}</strong>
+          </article>
+          <article class="card stat-card stat-card-warning">
+            <span>En revisión</span>
+            <strong>{{ pendingCount }}</strong>
+          </article>
+        </section>
 
-      <section class="charts-container" *ngIf="(chartData.labels?.length ?? 0) > 0">
-        <article class="card chart-card">
+        @if ((chartData.labels?.length ?? 0) > 0) {
+          <section class="charts-container">
+            <article class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h3>Evolución de energía eléctrica</h3>
+                  <p class="chart-subtitle">Consumo mensual en kWh</p>
+                </div>
+                <div class="chart-meta">
+                  <span class="badge-unit">kWh</span>
+                  <span class="chart-avg">Prom: {{ avgEnergia.toFixed(1) }}</span>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="chartData"
+                  [options]="energyChartOptions"
+                  [type]="'line'">
+                </canvas>
+              </div>
+              <div class="chart-footer">
+                <span>Último valor: {{ lastEnergia.toFixed(1) }} kWh</span>
+              </div>
+            </article>
+
+            <article class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h3>Evolución de combustible</h3>
+                  <p class="chart-subtitle">Consumo mensual en litros</p>
+                </div>
+                <div class="chart-meta">
+                  <span class="badge-unit">L</span>
+                  <span class="chart-avg">Prom: {{ avgCombustible.toFixed(1) }}</span>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="fuelChartData"
+                  [options]="fuelChartOptions"
+                  [type]="'line'">
+                </canvas>
+              </div>
+              <div class="chart-footer">
+                <span>Último valor: {{ lastCombustible.toFixed(1) }} L</span>
+              </div>
+            </article>
+          </section>
+        }
+
+        <section class="card table-card">
           <div class="card-header">
             <div>
-              <h3>Evolución de energía eléctrica</h3>
-              <p class="chart-subtitle">Consumo mensual en kWh</p>
-            </div>
-            <div class="chart-meta">
-              <span class="badge-unit">kWh</span>
-              <span class="chart-avg">Prom: {{ avgEnergia.toFixed(1) }}</span>
+              <h3>Boletas recientes</h3>
+              <p class="chart-subtitle">Ajusta los valores si la extracción OCR no fue precisa</p>
             </div>
           </div>
-          <div class="chart-wrapper">
-            <canvas baseChart
-              [data]="chartData"
-              [options]="energyChartOptions"
-              [type]="'line'">
-            </canvas>
-          </div>
-          <div class="chart-footer">
-            <span>Último valor: {{ lastEnergia.toFixed(1) }} kWh</span>
-          </div>
-        </article>
 
-        <article class="card chart-card">
-          <div class="card-header">
-            <div>
-              <h3>Evolución de combustible</h3>
-              <p class="chart-subtitle">Consumo mensual en litros</p>
-            </div>
-            <div class="chart-meta">
-              <span class="badge-unit">L</span>
-              <span class="chart-avg">Prom: {{ avgCombustible.toFixed(1) }}</span>
-            </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Periodo</th>
+                  <th>Estado</th>
+                  <th>Detalle</th>
+                  <th>Archivo</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of items; track item.id) {
+                  <tr>
+                    <td class="period-cell">{{ item.periodo_referencia || item.valor_extraido.periodo || 'Sin periodo' }}</td>
+                    <td>
+                      <span class="badge" [class.badge-success]="item.procesado" [class.badge-warning]="!item.procesado">
+                        {{ item.procesado ? 'Procesado' : 'Pendiente' }}
+                      </span>
+                    </td>
+                    <td class="chips-cell">
+                      @for (chip of chipsVisibles(item); track chip.label) {
+                        <span class="chip">{{ chip.label }}</span>
+                      }
+                      @if (chipsOcultos(item) > 0) {
+                        <button type="button" class="chip chip-more" (click)="toggleExpandido(item.id)">
+                          {{ expandidos.has(item.id) ? 'Ver menos' : '+' + chipsOcultos(item) + ' más' }}
+                        </button>
+                      }
+                      @if (chipsPara(item).length === 0) {
+                        <span class="unit">Sin datos</span>
+                      }
+                    </td>
+                    <td>
+                      @if (item.archivo_url) {
+                        <a [href]="item.archivo_url" target="_blank" rel="noopener noreferrer" class="link-file">Ver archivo</a>
+                      } @else {
+                        <span class="unit">Manual</span>
+                      }
+                    </td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm" type="button" (click)="abrirModal(item)">Editar</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
-          <div class="chart-wrapper">
-            <canvas baseChart
-              [data]="fuelChartData"
-              [options]="fuelChartOptions"
-              [type]="'line'">
-            </canvas>
-          </div>
-          <div class="chart-footer">
-            <span>Último valor: {{ lastCombustible.toFixed(1) }} L</span>
-          </div>
-        </article>
-      </section>
-
-      <section class="card table-card">
-        <div class="card-header">
-          <div>
-            <h3>Boletas recientes</h3>
-            <p class="chart-subtitle">Ajusta los valores si la extracción OCR no fue precisa</p>
-          </div>
-        </div>
-
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Periodo</th>
-                <th>Estado</th>
-                <th>Energía</th>
-                <th>Combustible</th>
-                <th>Archivo</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of items">
-                <td class="period-cell">{{ item.periodo_referencia || item.valor_extraido.periodo || 'Sin periodo' }}</td>
-                <td>
-                  <span class="badge" [class.badge-success]="item.procesado" [class.badge-warning]="!item.procesado">
-                    {{ item.procesado ? 'Procesado' : 'Pendiente' }}
-                  </span>
-                </td>
-                <td class="number-cell">{{ formatValue(item.valor_extraido.energia_kwh) }} <span class="unit">kWh</span></td>
-                <td class="number-cell">{{ formatValue(item.valor_extraido.combustible_litros) }} <span class="unit">L</span></td>
-                <td>
-                  <a *ngIf="item.archivo_url; else manualRecord" [href]="item.archivo_url" target="_blank" rel="noopener noreferrer" class="link-file">Ver archivo</a>
-                  <ng-template #manualRecord><span class="unit">Manual</span></ng-template>
-                </td>
-                <td>
-                  <button class="btn btn-secondary btn-sm" type="button" (click)="abrirModal(item)">Editar</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-
-    <ng-template #emptyState>
-      <div class="history-shell">
+        </section>
+      } @else {
         <div class="page-heading">
           <div>
             <p class="eyebrow">Seguimiento</p>
@@ -162,35 +194,38 @@ const COLOR_LINE = '#e2e8f0';
         <div class="card empty-state">
           <p class="empty-text">Aún no hay boletas para mostrar.</p>
           <p class="empty-subtext">Sube tu primera boleta en la calculadora para comenzar.</p>
+          <a routerLink="/calculadora" class="btn btn-primary">Subir tu primera boleta</a>
         </div>
-      </div>
-    </ng-template>
-
-    <div class="modal-backdrop" *ngIf="selectedItem" (click)="cerrarModal()">
-      <div class="card modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3>Editar valores de boleta</h3>
-          <button type="button" class="btn-close" (click)="cerrarModal()" aria-label="Cerrar">×</button>
-        </div>
-
-        <div class="form-group">
-          <label for="energia">Energía (kWh)</label>
-          <input id="energia" type="number" step="0.01" [(ngModel)]="editedEnergia" />
-        </div>
-
-        <div class="form-group">
-          <label for="combustible">Combustible (L)</label>
-          <input id="combustible" type="number" step="0.01" [(ngModel)]="editedCombustible" />
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
-          <button type="button" class="btn btn-primary" (click)="guardarCorreccion()" [disabled]="saving">
-            {{ saving ? 'Guardando…' : 'Guardar cambios' }}
-          </button>
-        </div>
-      </div>
+      }
     </div>
+
+    @if (selectedItem) {
+      <div class="modal-backdrop" (click)="cerrarModal()">
+        <div class="card modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Editar valores de boleta</h3>
+            <button type="button" class="btn-close" (click)="cerrarModal()" aria-label="Cerrar">×</button>
+          </div>
+
+          <div class="form-group">
+            <label for="energia">Energía (kWh)</label>
+            <input id="energia" type="number" step="0.01" [(ngModel)]="editedEnergia" />
+          </div>
+
+          <div class="form-group">
+            <label for="combustible">Combustible (L)</label>
+            <input id="combustible" type="number" step="0.01" [(ngModel)]="editedCombustible" />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" (click)="guardarCorreccion()" [disabled]="saving">
+              {{ saving ? 'Guardando…' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     .history-shell {
@@ -337,6 +372,37 @@ const COLOR_LINE = '#e2e8f0';
       font-variant-numeric: tabular-nums;
     }
 
+    .chips-cell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      max-width: 320px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius-full);
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .chip-more {
+      border: 1px dashed var(--line-strong);
+      background: transparent;
+      color: var(--muted-strong);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .chip-more:hover {
+      background: var(--surface-soft);
+    }
+
     .unit {
       color: var(--muted-soft);
       font-size: 0.82rem;
@@ -362,6 +428,13 @@ const COLOR_LINE = '#e2e8f0';
     .empty-state {
       padding: 2.5rem;
       text-align: center;
+      display: grid;
+      gap: 0.5rem;
+      justify-items: center;
+    }
+
+    .empty-state .btn {
+      margin-top: 0.5rem;
     }
 
     .empty-text {
@@ -487,15 +560,19 @@ export class HistorialComponent implements OnInit {
   energyChartOptions = this.baseChartOptions;
   fuelChartOptions = this.baseChartOptions;
 
-  constructor(private http: HttpClient) {}
+  private categoriasPorCodigo = new Map<string, Categoria>();
+  expandidos = new Set<string>();
+
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private ui: UiService) {}
 
   ngOnInit() {
     this.cargar();
+    this.cargarCategorias();
   }
 
   cargar() {
     this.http
-      .get<{ results: HistorialItem[] }>('http://localhost:8000/api/boletas/historial/', {
+      .get<{ results: HistorialItem[] }>(`${environment.apiBaseUrl}/api/boletas/historial/`, {
         withCredentials: true
       })
       .subscribe({
@@ -504,14 +581,69 @@ export class HistorialComponent implements OnInit {
           this.processedCount = this.items.filter((item) => item.procesado).length;
           this.pendingCount = this.items.filter((item) => !item.procesado).length;
           this.actualizarGraficas();
+          this.cdr.markForCheck();
         },
         error: () => {
           this.items = [];
           this.processedCount = 0;
           this.pendingCount = 0;
           this.actualizarGraficas();
+          this.cdr.markForCheck();
         }
       });
+  }
+
+  private cargarCategorias() {
+    this.http
+      .get<Categoria[]>(`${environment.apiBaseUrl}/api/categorias/`, { withCredentials: true })
+      .subscribe({
+        next: (categorias) => {
+          this.categoriasPorCodigo = new Map(categorias.map((c) => [c.codigo, c]));
+          this.cdr.markForCheck();
+        },
+        error: () => { /* los chips caen de vuelta al código crudo si no cargan las categorías */ },
+      });
+  }
+
+  /** Chips legibles ("Diésel · 43 L") en vez de las claves crudas de valor_extraido
+   * (antes: "combustible_diesel: 43"). */
+  chipsPara(item: HistorialItem): Chip[] {
+    const chips: Chip[] = [];
+    const { energia_kwh, combustible_litros, actividades } = item.valor_extraido;
+
+    if (energia_kwh !== null && energia_kwh !== undefined) {
+      chips.push({ label: `Electricidad · ${energia_kwh} kWh` });
+    }
+    if (combustible_litros !== null && combustible_litros !== undefined) {
+      chips.push({ label: `Combustible · ${combustible_litros} L` });
+    }
+    if (actividades) {
+      for (const [codigo, cantidad] of Object.entries(actividades)) {
+        const categoria = this.categoriasPorCodigo.get(codigo);
+        const nombre = categoria?.nombre ?? codigo;
+        const unidad = categoria?.unidad_actividad ?? '';
+        chips.push({ label: `${nombre} · ${cantidad}${unidad ? ' ' + unidad : ''}` });
+      }
+    }
+    return chips;
+  }
+
+  chipsVisibles(item: HistorialItem): Chip[] {
+    const chips = this.chipsPara(item);
+    return this.expandidos.has(item.id) ? chips : chips.slice(0, 2);
+  }
+
+  chipsOcultos(item: HistorialItem): number {
+    if (this.expandidos.has(item.id)) return 0;
+    return Math.max(0, this.chipsPara(item).length - 2);
+  }
+
+  toggleExpandido(id: string): void {
+    if (this.expandidos.has(id)) {
+      this.expandidos.delete(id);
+    } else {
+      this.expandidos.add(id);
+    }
   }
 
   abrirModal(item: HistorialItem) {
@@ -537,7 +669,7 @@ export class HistorialComponent implements OnInit {
 
     this.http
       .patch(
-        `http://localhost:8000/api/boletas/${this.selectedItem.id}/corregir/`,
+        `${environment.apiBaseUrl}/api/boletas/${this.selectedItem.id}/corregir/`,
         { energia_kwh: energia, combustible_litros: combustible },
         { withCredentials: true }
       )
@@ -546,16 +678,15 @@ export class HistorialComponent implements OnInit {
           this.saving = false;
           this.cerrarModal();
           this.cargar();
+          this.ui.showToast('Corrección guardada.');
+          this.cdr.markForCheck();
         },
         error: () => {
           this.saving = false;
-          alert('No se pudo guardar la corrección.');
+          this.cdr.markForCheck();
+          this.ui.showToast('No se pudo guardar la corrección.', 'error');
         }
       });
-  }
-
-  formatValue(value: number | null) {
-    return value === null || value === undefined ? '—' : value.toLocaleString('es-ES', { maximumFractionDigits: 2 });
   }
 
   private actualizarGraficas() {

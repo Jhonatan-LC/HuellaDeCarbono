@@ -6,6 +6,7 @@ import { VerifyEmailComponent } from './auth/verify-email.component';
 import { HistorialComponent } from './historial/historial.component';
 import { authGuard } from './auth/auth.guard';
 import { DashboardComponent } from './dashboard/dashboard.component';
+import { AnaliticaComponent } from './analitica/analitica.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -14,5 +15,6 @@ export const routes: Routes = [
   { path: 'calculadora', component: Calculator, canActivate: [authGuard] },
   { path: 'historial', component: HistorialComponent, canActivate: [authGuard] },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: 'analitica', component: AnaliticaComponent, canActivate: [authGuard] },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
 ];

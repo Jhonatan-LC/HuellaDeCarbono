@@ -1,9 +1,17 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 interface AuthResponse {
-  user: { id: number; username: string; email: string };
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    organizacion_id: number;
+    organizacion_nombre: string;
+    rol: 'admin' | 'miembro' | null;
+  };
 }
 
 interface RegisterResponse {
@@ -13,7 +21,7 @@ interface RegisterResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly baseUrl = 'http://localhost:8000/api/auth';
+  private readonly baseUrl = `${environment.apiBaseUrl}/api/auth`;
   private readonly authState = new BehaviorSubject<boolean>(false);
   public readonly isAuthenticated$ = this.authState.asObservable();
 

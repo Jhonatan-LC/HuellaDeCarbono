@@ -1,11 +1,13 @@
 :root {
   /* Superficie */
   --bg: #f8fafc;
+  --bg-gradient: linear-gradient(135deg, #f0fdf4, #f8fafc 55%);
   --surface: #ffffff;
   --surface-soft: #f1f5f9;
 
   /* Texto */
   --text: #0f172a;
+  --muted-strong: #475569;
   --muted: #64748b;
   --muted-soft: #94a3b8;
 
@@ -13,10 +15,23 @@
   --line: #e2e8f0;
   --line-strong: #cbd5e1;
 
-  /* Acento (verde bosque) */
+  /* Acento (verde bosque) — marca: botones, links, estado activo */
   --primary: #1f5c4b;
   --primary-strong: #163f34;
   --primary-soft: #e7f0ec;
+
+  /* Acento vivo — highlights, foco, hover, estados positivos (distinto de --primary) */
+  --accent: #10b981;
+  --accent-strong: #059669;
+  --accent-soft: #d1fae5;
+
+  /* Colores por alcance (ISO 14064-1 / GHG Protocol) — mismo color en toda la app */
+  --scope-1: #0f766e;
+  --scope-1-soft: #e6f4f2;
+  --scope-2: #f59e0b;
+  --scope-2-soft: #fef3e2;
+  --scope-3: #6366f1;
+  --scope-3-soft: #eef0fd;
 
   /* Estados */
   --warning: #b45309;
@@ -30,11 +45,89 @@
   --radius-lg: 14px;
   --radius-full: 999px;
 
-  /* Sombra: mínima, no decorativa */
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+  /* Elevación en 3 niveles: 0 = fondo (sin sombra), 1 = tarjetas, 2 = hover/activo/modal */
+  --shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
   --shadow-lg: 0 12px 20px -6px rgba(15, 23, 42, 0.12), 0 4px 8px -4px rgba(15, 23, 42, 0.08);
 
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1f1a;
+    --bg-gradient: linear-gradient(135deg, #0b1f1a, #0f2b23 55%);
+    --surface: #102821;
+    --surface-soft: #14332a;
+
+    --text: #ecfdf5;
+    --muted-strong: #b8ccc4;
+    --muted: #8fac9e;
+    --muted-soft: #5f7c70;
+
+    --line: #1e3b32;
+    --line-strong: #2c5245;
+
+    --primary: #34d399;
+    --primary-strong: #6ee7b7;
+    --primary-soft: #163f34;
+
+    --accent: #34d399;
+    --accent-strong: #6ee7b7;
+    --accent-soft: #163f34;
+
+    --scope-1: #2dd4bf;
+    --scope-1-soft: #103b35;
+    --scope-2: #fbbf24;
+    --scope-2-soft: #3a2a0c;
+    --scope-3: #818cf8;
+    --scope-3-soft: #211f47;
+
+    --warning: #fbbf24;
+    --warning-soft: #3a2a0c;
+    --danger: #f87171;
+    --danger-soft: #3f1414;
+
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 12px 24px -6px rgba(0, 0, 0, 0.45), 0 4px 8px -4px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b1f1a;
+  --bg-gradient: linear-gradient(135deg, #0b1f1a, #0f2b23 55%);
+  --surface: #102821;
+  --surface-soft: #14332a;
+
+  --text: #ecfdf5;
+  --muted-strong: #b8ccc4;
+  --muted: #8fac9e;
+  --muted-soft: #5f7c70;
+
+  --line: #1e3b32;
+  --line-strong: #2c5245;
+
+  --primary: #34d399;
+  --primary-strong: #6ee7b7;
+  --primary-soft: #163f34;
+
+  --accent: #34d399;
+  --accent-strong: #6ee7b7;
+  --accent-soft: #163f34;
+
+  --scope-1: #2dd4bf;
+  --scope-1-soft: #103b35;
+  --scope-2: #fbbf24;
+  --scope-2-soft: #3a2a0c;
+  --scope-3: #818cf8;
+  --scope-3-soft: #211f47;
+
+  --warning: #fbbf24;
+  --warning-soft: #3a2a0c;
+  --danger: #f87171;
+  --danger-soft: #3f1414;
+
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 24px -6px rgba(0, 0, 0, 0.45), 0 4px 8px -4px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -48,10 +141,13 @@ body {
 }
 
 body {
-  background: var(--bg);
+  background: var(--bg-gradient);
+  background-color: var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 button,
@@ -86,6 +182,17 @@ h1, h2, h3, h4, p {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+}
+
+/* Elevación nivel 2: tarjetas interactivas (KPIs, filas de historial) suben al pasar el mouse. */
+.card--interactive {
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card--interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .btn {
@@ -123,15 +230,30 @@ h1, h2, h3, h4, p {
   background: var(--surface-soft);
 }
 
+.btn-sm {
+  min-height: 2.1rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+}
+
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
+/* Un primario deshabilitado en verde apagado + texto blanco tiene bajo contraste: se ve
+   claramente inactivo (gris sobre gris), no solo "verde más pálido". */
+.btn-primary:disabled {
+  background: var(--line);
+  border-color: var(--line);
+  color: var(--muted);
+  opacity: 1;
+}
+
 label {
   display: block;
   margin-bottom: 0.35rem;
-  color: var(--muted);
+  color: var(--muted-strong);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -139,7 +261,8 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="email"],
-input[type="password"] {
+input[type="password"],
+select {
   width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
@@ -150,9 +273,12 @@ input[type="password"] {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-soft);
+input:focus,
+select:focus,
+.btn:focus-visible,
+[tabindex]:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .badge {
@@ -164,6 +290,22 @@ input:focus {
   font-size: 0.76rem;
   font-weight: 700;
   line-height: 1;
+}
+
+/* No depender solo del color: cada estado también lleva un glifo distinto. */
+.badge-success::before,
+.badge-Procesado::before {
+  content: "✓";
+}
+
+.badge-warning::before,
+.badge-Pendiente::before {
+  content: "●";
+}
+
+.badge-danger::before,
+.badge-Error::before {
+  content: "✕";
 }
 
 .badge-success,

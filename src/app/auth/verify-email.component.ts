@@ -1,13 +1,12 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-verify-email',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     <main class="auth-page">
       <section class="auth-card card">
@@ -41,7 +40,9 @@ import { AuthService } from './auth.service';
           {{ resending ? 'Enviando...' : '¿No llegó? Reenviar código' }}
         </button>
 
-        <p class="message" *ngIf="message">{{ message }}</p>
+        @if (message) {
+          <p class="message">{{ message }}</p>
+        }
         <a routerLink="/login" class="auth-link">Volver a inicio de sesión</a>
       </section>
     </main>
@@ -66,7 +67,12 @@ export class VerifyEmailComponent {
   resending = false;
   message = '';
 
-  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef,
+  ) {
     this.username = this.route.snapshot.queryParamMap.get('username') || '';
   }
 
@@ -80,6 +86,7 @@ export class VerifyEmailComponent {
       error: (err) => {
         this.submitting = false;
         this.message = err?.error?.detail || 'No se pudo verificar el código.';
+        this.cdr.markForCheck();
       },
     });
   }
@@ -91,10 +98,12 @@ export class VerifyEmailComponent {
       next: (res) => {
         this.resending = false;
         this.message = res.detail;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.resending = false;
         this.message = err?.error?.detail || 'No se pudo reenviar el código.';
+        this.cdr.markForCheck();
       },
     });
   }

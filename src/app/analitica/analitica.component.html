@@ -1,0 +1,227 @@
+<app-topbar></app-topbar>
+
+<div class="analitica-container">
+  @if (error) {
+    <div class="card error-banner">
+      <strong>Error de conexión.</strong> {{ error }}
+      <p>Verifica que el backend Django esté corriendo en el puerto correcto.</p>
+    </div>
+  }
+
+  <div class="page-heading">
+    <p class="eyebrow">Analítica ambiental</p>
+    <h1>Indicadores ambientales</h1>
+  </div>
+
+  @if (selectedUbicacionId !== null) {
+    <div class="card filtro-banner">
+      <span>Mostrando datos de: <strong>{{ selectedUbicacionNombre }}</strong></span>
+      <div class="filtro-banner-actions">
+        <button type="button" class="btn-secondary" (click)="verTodasLasFiliales()">Ver todas las filiales</button>
+        <button type="button" class="filtro-banner-close" (click)="verTodasLasFiliales()" aria-label="Quitar filtro">×</button>
+      </div>
+    </div>
+  }
+
+  @if (cargando) {
+    <div class="skeleton skeleton-chart"></div>
+  }
+
+  @if (overview; as data) {
+    <!-- KPIs de resumen -->
+    <div class="kpi-grid">
+      <div class="card card--interactive kpi-card kpi-card-accent">
+        <span class="kpi-label">Emisiones totales</span>
+        <p class="kpi-value">{{ totalCo2eAnimado | compactoKgCo2e }}</p>
+      </div>
+      <div class="card card--interactive kpi-card">
+        <span class="kpi-label scope-label-1">Alcance 1 · Directas</span>
+        <p class="kpi-value">{{ alcance1Animado | compactoKgCo2e }}</p>
+      </div>
+      <div class="card card--interactive kpi-card">
+        <span class="kpi-label scope-label-2">Alcance 2 · Energía</span>
+        <p class="kpi-value">{{ alcance2Animado | compactoKgCo2e }}</p>
+      </div>
+      <div class="card card--interactive kpi-card">
+        <span class="kpi-label scope-label-3">Alcance 3 · Indirectas</span>
+        <p class="kpi-value">{{ alcance3Animado | compactoKgCo2e }}</p>
+      </div>
+    </div>
+
+    <!-- Distribución por alcance + tendencia -->
+    <div class="chart-row">
+      <div class="card chart-card chart-card-third">
+        <h2>Distribución por alcance</h2>
+        <p class="chart-subtitle">Cómo se reparten tus emisiones entre los 3 alcances.</p>
+        @if (data.resumen.total_kg_co2e > 0) {
+          <div class="chart-wrapper">
+            @if (isBrowser) {
+              <div echarts [options]="alcanceDonut" class="chart-echarts"></div>
+            }
+          </div>
+        } @else {
+          <p class="kpi-empty">Aún no hay datos suficientes para este gráfico.</p>
+        }
+      </div>
+
+      <div class="card chart-card chart-card-two-thirds">
+        <h2>Tendencia de emisiones por periodo</h2>
+        <p class="chart-subtitle">Evolución mes a mes de tu huella total.</p>
+        @if (data.tendencia_periodo.length > 1) {
+          <div class="chart-wrapper">
+            @if (isBrowser) {
+              <div echarts [options]="tendenciaLine" class="chart-echarts"></div>
+            }
+          </div>
+        } @else if (data.tendencia_periodo.length === 1) {
+          <p class="kpi-empty">Todavía hay un solo periodo registrado — la tendencia aparece a partir del segundo mes.</p>
+        } @else {
+          <p class="kpi-empty">Aún no hay datos suficientes para este gráfico.</p>
+        }
+      </div>
+    </div>
+
+    <div class="card chart-card">
+      <h2>Emisiones por categoría</h2>
+      <p class="chart-subtitle">Cada barra usa el color de su alcance (1, 2 o 3).</p>
+      @if (data.por_categoria.length > 0) {
+        <div class="chart-wrapper">
+          @if (isBrowser) {
+            <div echarts [options]="categoriaBar" class="chart-echarts"></div>
+          }
+        </div>
+      } @else {
+        <p class="kpi-empty">Aún no hay datos suficientes para este gráfico.</p>
+      }
+    </div>
+
+    <!-- Combustibles -->
+    <div class="card chart-card">
+      <h2>Combustibles</h2>
+      <p class="chart-subtitle">Consumo de combustible por tipo, con su equivalente en CO2e.</p>
+      @if (data.combustibles.length > 0) {
+        <div class="chart-wrapper">
+          @if (isBrowser) {
+            <div echarts [options]="combustiblesBar" class="chart-echarts"></div>
+          }
+        </div>
+      } @else {
+        <p class="kpi-empty">Aún no hay datos suficientes para este gráfico.</p>
+      }
+    </div>
+
+    <!-- Agua -->
+    <div class="card chart-card">
+      <h2>Agua</h2>
+      <p class="chart-subtitle">Consumo de agua por categoría.</p>
+      @if (data.agua.length > 0) {
+        <div class="chart-wrapper">
+          @if (isBrowser) {
+            <div echarts [options]="aguaBar" class="chart-echarts"></div>
+          }
+        </div>
+      } @else {
+        <p class="kpi-empty">Aún no hay datos suficientes para este gráfico.</p>
+      }
+    </div>
+
+    <!-- Residuos -->
+    <div class="card chart-card">
+      <h2>
+        Residuos
+        @if (porcentajeReciclado !== null) {
+          <span class="badge" title="Aproximado: compara categorías de cantidad independientes, no un mismo lote trazado de generación a destino.">
+            {{ porcentajeReciclado }}% reciclado (aprox.)
+          </span>
+        }
+      </h2>
+      <p class="chart-subtitle">Generación de residuos por categoría.</p>
+      @if (data.residuos.length > 0) {
+        <div class="chart-wrapper">
+          @if (isBrowser) {
+            <div echarts [options]="residuosBar" class="chart-echarts"></div>
+          }
+        </div>
+      } @else {
+        <p class="kpi-empty">Aún no hay datos suficientes para este gráfico.</p>
+      }
+    </div>
+
+    <!-- Por planta -->
+    <div class="card chart-card">
+      <div class="chart-card-head">
+        <h2>Por planta / filial</h2>
+        <button type="button" class="btn-secondary" (click)="toggleFormularioPlanta()">
+          {{ mostrarFormularioPlanta ? 'Cancelar' : '+ Agregar planta' }}
+        </button>
+      </div>
+
+      @if (mostrarFormularioPlanta) {
+        <div class="planta-form">
+          @if (errorPlanta) {
+            <p class="form-error">{{ errorPlanta }}</p>
+          }
+          <p class="form-hint">Puedes hacer click en el mapa de abajo para ubicarla, o completar los datos a mano.</p>
+          <div class="planta-form-grid">
+            <input type="text" placeholder="Nombre de la planta *" [(ngModel)]="nuevaPlanta.nombre" name="nombre" />
+            <input type="text" placeholder="País" [(ngModel)]="nuevaPlanta.pais" name="pais" />
+            <input type="number" placeholder="Latitud" [(ngModel)]="nuevaPlanta.latitud" name="latitud" step="0.000001" />
+            <input type="number" placeholder="Longitud" [(ngModel)]="nuevaPlanta.longitud" name="longitud" step="0.000001" />
+          </div>
+          <button type="button" class="btn-primary" (click)="guardarPlanta()" [disabled]="guardandoPlanta">
+            {{ guardandoPlanta ? 'Guardando...' : 'Guardar planta' }}
+          </button>
+        </div>
+      }
+
+      @if (!tienePlantas && !mostrarFormularioPlanta) {
+        <div class="kpi-empty">
+          Aún no tienes plantas/filiales con actividad registrada. Agrega una planta y asigna actividad
+          a esa planta desde la calculadora para ver el desglose acá.
+        </div>
+      }
+
+      @if (tienePlantas) {
+        <div class="chart-wrapper">
+          @if (isBrowser) {
+            <div echarts [options]="plantaBar" class="chart-echarts"></div>
+          }
+        </div>
+      }
+
+      <h3 class="chart-subheading">Mapa de filiales</h3>
+      <p class="chart-subtitle">
+        Click en una filial para filtrar toda la analítica por ese punto · click en el mapa para
+        agregar una filial nueva.
+      </p>
+
+      @if (isBrowser) {
+        @if (nombresPaises.length > 0) {
+          <div class="map-controls">
+            <label for="centrarPais">Centrar en país</label>
+            <select id="centrarPais" (change)="centrarEnPais($any($event.target).value)">
+              <option value="">Elegir…</option>
+              @for (nombre of nombresPaises; track nombre) {
+                <option [value]="nombre">{{ nombre }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (mapaListo) {
+          <div class="chart-wrapper chart-wrapper-tall">
+            <div
+              echarts
+              [options]="mapaPlantasOption"
+              (chartInit)="onChartInit($event)"
+              (chartClick)="onChartClick($event)"
+              class="chart-echarts"
+            ></div>
+          </div>
+        } @else {
+          <div class="skeleton skeleton-chart"></div>
+        }
+      }
+    </div>
+  }
+</div>
