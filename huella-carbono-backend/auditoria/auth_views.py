@@ -13,6 +13,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from .models import CodigoVerificacionEmail
+from .organizaciones import organizacion_activa
+from .permisos import rol_de
 
 
 @ensure_csrf_cookie
@@ -27,6 +29,18 @@ def _get_payload(request):
         except json.JSONDecodeError:
             return {}
     return request.POST
+
+
+def _serializar_usuario(user):
+    organizacion = organizacion_activa(user)
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "organizacion_id": organizacion.id,
+        "organizacion_nombre": organizacion.nombre,
+        "rol": rol_de(user, organizacion),
+    }
 
 
 def _enviar_codigo_verificacion(user):
@@ -110,7 +124,7 @@ def verify_email_view(request):
 
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
-    return JsonResponse({"user": {"id": user.id, "username": user.username, "email": user.email}})
+    return JsonResponse({"user": _serializar_usuario(user)})
 
 
 @require_POST
@@ -151,7 +165,7 @@ def login_view(request):
         return JsonResponse({"detail": "Credenciales inválidas."}, status=400)
 
     login(request, user)
-    return JsonResponse({"user": {"id": user.id, "username": user.username, "email": user.email}})
+    return JsonResponse({"user": _serializar_usuario(user)})
 
 
 @require_POST
@@ -164,4 +178,4 @@ def me_view(request):
     if not request.user.is_authenticated:
         return JsonResponse({"detail": "No autenticado"}, status=401)
 
-    return JsonResponse({"user": {"id": request.user.id, "username": request.user.username, "email": request.user.email}})
+    return JsonResponse({"user": _serializar_usuario(request.user)})

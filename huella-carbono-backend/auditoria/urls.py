@@ -1,5 +1,5 @@
 from django.urls import path
-from .analytics_views import CarbonFootprintAnalyticsView
+from .analytics_views import AnalyticsOverviewView, CarbonFootprintAnalyticsView
 from .categorias_views import CategoriasEmisionView
 from .auth_views import (
     csrf_token,
@@ -12,11 +12,14 @@ from .auth_views import (
 )
 from .correcciones_views import CorregirBoletaView
 from .dashboard_views import DashboardKPIView
+from .ubicaciones_views import UbicacionesView
 from .views import HistorialBoletasView, RegistrarConsumoView, SubirBoletaView
 
 urlpatterns = [
     path('dashboard/kpis/', DashboardKPIView.as_view(), name='dashboard-kpis'),
     path('analytics/carbon-footprint/', CarbonFootprintAnalyticsView.as_view(), name='carbon-footprint-analytics'),
+    path('analytics/overview/', AnalyticsOverviewView.as_view(), name='analytics-overview'),
+    path('ubicaciones/', UbicacionesView.as_view(), name='ubicaciones'),
     path('boletas/upload/', SubirBoletaView.as_view(), name='subir-boleta'),
     path('boletas/historial/', HistorialBoletasView.as_view(), name='historial-boletas'),
     path('boletas/<uuid:pk>/corregir/', CorregirBoletaView.as_view(), name='corregir-boleta'),

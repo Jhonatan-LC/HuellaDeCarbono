@@ -73,6 +73,27 @@ class Membresia(models.Model):
         return f'{self.usuario} @ {self.organizacion} ({self.rol})'
 
 
+class Ubicacion(models.Model):
+    """Planta/sitio/filial de una organización. Opcional: un hogar no necesita definir ninguna,
+    pero una empresa mediana/industrial puede desglosar sus indicadores por sitio."""
+
+    organizacion = models.ForeignKey(Organizacion, on_delete=models.CASCADE, related_name='ubicaciones')
+    nombre = models.CharField(max_length=150)
+    pais = models.CharField(max_length=100, blank=True)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    activa = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Ubicación'
+        verbose_name_plural = 'Ubicaciones'
+
+    def __str__(self):
+        return f'{self.nombre} ({self.organizacion})'
+
+
 class RegistroBoleta(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     fecha_subida = models.DateField(auto_now_add=True)
@@ -108,6 +129,11 @@ class RegistroBoleta(models.Model):
     organizacion = models.ForeignKey(
         Organizacion,
         on_delete=models.CASCADE,
+        related_name='boletas',
+    )
+    ubicacion = models.ForeignKey(
+        Ubicacion,
+        on_delete=models.SET_NULL,
         related_name='boletas',
         null=True,
         blank=True,
@@ -204,10 +230,15 @@ class RegistroActividad(models.Model):
         Organizacion,
         on_delete=models.CASCADE,
         related_name='registros_actividad',
+    )
+    categoria = models.ForeignKey(CategoriaEmision, on_delete=models.PROTECT, related_name='registros')
+    ubicacion = models.ForeignKey(
+        Ubicacion,
+        on_delete=models.SET_NULL,
+        related_name='registros',
         null=True,
         blank=True,
     )
-    categoria = models.ForeignKey(CategoriaEmision, on_delete=models.PROTECT, related_name='registros')
     periodo = models.CharField(max_length=7, help_text="Formato 'YYYY-MM'")
     cantidad = models.DecimalField(max_digits=14, decimal_places=4)
     origen = models.CharField(max_length=10, choices=ORIGEN_CHOICES, default='manual')
@@ -229,6 +260,48 @@ class RegistroActividad(models.Model):
 
     def __str__(self):
         return f'{self.categoria_id} {self.periodo} = {self.cantidad}'
+
+
+class RegistroAuditoria(models.Model):
+    """Quién cambió qué y cuándo, más allá de las correcciones de boleta (ver CorreccionBoleta).
+
+    Genérico a propósito (no FK directa al objeto) para no acoplar el log a cada modelo
+    auditado; ver auditoria/auditlog.py::registrar_auditoria() para el único punto de escritura.
+    """
+
+    ACCION_CHOICES = [
+        ('creado', 'Creado'),
+        ('actualizado', 'Actualizado'),
+        ('eliminado', 'Eliminado'),
+    ]
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='acciones_auditadas',
+    )
+    organizacion = models.ForeignKey(
+        Organizacion,
+        on_delete=models.CASCADE,
+        related_name='auditoria',
+        null=True,
+        blank=True,
+    )
+    accion = models.CharField(max_length=16, choices=ACCION_CHOICES)
+    modelo = models.CharField(max_length=100)
+    objeto_id = models.CharField(max_length=64)
+    detalle = models.JSONField(default=dict, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creado_en']
+        verbose_name = 'Registro de auditoría'
+        verbose_name_plural = 'Registros de auditoría'
+
+    def __str__(self):
+        return f'{self.actor} {self.accion} {self.modelo}({self.objeto_id})'
 
 
 class CalculoEmision(models.Model):

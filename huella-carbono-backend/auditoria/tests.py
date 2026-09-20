@@ -9,16 +9,19 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .extractor import extraer_valor_boleta
-from .models import RegistroBoleta
+from .models import Membresia, Organizacion, RegistroActividad, RegistroBoleta, Ubicacion
 from .dashboard_views import _valor_factor
+from .emisiones import registrar_actividad
+from .organizaciones import organizacion_activa
 
 
 class AuthTests(TestCase):
-    def test_registro_con_json_crea_usuario_y_session(self):
+    def test_registro_con_json_crea_usuario_inactivo_pendiente_de_verificacion(self):
         payload = {
             'username': 'nuevo',
             'email': 'nuevo@example.com',
-            'password': '12345678',
+            'password': 'ContraseñaSegura99',
+            'password_confirm': 'ContraseñaSegura99',
         }
 
         response = self.client.post(
@@ -28,8 +31,9 @@ class AuthTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(User.objects.filter(username='nuevo').exists())
-        self.assertTrue(response.wsgi_request.user.is_authenticated)
+        usuario = User.objects.get(username='nuevo')
+        self.assertFalse(usuario.is_active)  # activo recién tras verify_email_view
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
 
     def test_login_con_json_autentica_usuario(self):
         User.objects.create_user(username='loginuser', email='login@example.com', password='12345678')
@@ -97,8 +101,8 @@ class BoletaUploadTests(TestCase):
         usuario_a = User.objects.create_user(username='usera', password='12345678')
         usuario_b = User.objects.create_user(username='userb', password='12345678')
 
-        RegistroBoleta.objects.create(periodo_referencia='2026-06', archivo=SimpleUploadedFile('a.pdf', b'%PDF-1.4', content_type='application/pdf'), usuario=usuario_a)
-        RegistroBoleta.objects.create(periodo_referencia='2026-07', archivo=SimpleUploadedFile('b.pdf', b'%PDF-1.4', content_type='application/pdf'), usuario=usuario_b)
+        RegistroBoleta.objects.create(periodo_referencia='2026-06', archivo=SimpleUploadedFile('a.pdf', b'%PDF-1.4', content_type='application/pdf'), usuario=usuario_a, organizacion=organizacion_activa(usuario_a))
+        RegistroBoleta.objects.create(periodo_referencia='2026-07', archivo=SimpleUploadedFile('b.pdf', b'%PDF-1.4', content_type='application/pdf'), usuario=usuario_b, organizacion=organizacion_activa(usuario_b))
 
         self.client.force_login(usuario_a)
         response = self.client.get(reverse('historial-boletas'))
@@ -165,6 +169,7 @@ class ExtractorTests(TestCase):
 class DashboardKPITests(TestCase):
     def setUp(self):
         self.usuario = User.objects.create_user(username='kpi_tester', password='123')
+        self.organizacion = organizacion_activa(self.usuario)
         self.client.force_login(self.usuario)
 
         # Crear datos de prueba relativos a la fecha de hoy
@@ -172,39 +177,39 @@ class DashboardKPITests(TestCase):
         
         # Mes actual
         RegistroBoleta.objects.create(
-            usuario=self.usuario, periodo_referencia=hoy.strftime('%Y-%m'),
+            usuario=self.usuario, organizacion=self.organizacion, periodo_referencia=hoy.strftime('%Y-%m'),
             valor_extraido={'total': 25000, 'tipo_detectado': 'electricidad', 'energia_kwh': 150}
         )
         RegistroBoleta.objects.create(
-            usuario=self.usuario, periodo_referencia=hoy.strftime('%Y-%m'),
+            usuario=self.usuario, organizacion=self.organizacion, periodo_referencia=hoy.strftime('%Y-%m'),
             valor_extraido={'total': 75000, 'tipo_detectado': 'combustible', 'combustible_litros': 50}
         )
 
         # Mes anterior
         mes_1 = hoy - timedelta(days=1)
         RegistroBoleta.objects.create(
-            usuario=self.usuario, periodo_referencia=mes_1.strftime('%Y-%m'),
+            usuario=self.usuario, organizacion=self.organizacion, periodo_referencia=mes_1.strftime('%Y-%m'),
             valor_extraido={'total': 22000, 'energia_kwh': 140}
         )
-        
+
         # 2 meses atrás
         mes_2 = (mes_1).replace(day=1) - timedelta(days=1)
         RegistroBoleta.objects.create(
-            usuario=self.usuario, periodo_referencia=mes_2.strftime('%Y-%m'),
+            usuario=self.usuario, organizacion=self.organizacion, periodo_referencia=mes_2.strftime('%Y-%m'),
             valor_extraido={'total': 23000, 'energia_kwh': 145}
         )
 
         # 3 meses atrás
         mes_3 = (mes_2).replace(day=1) - timedelta(days=1)
         RegistroBoleta.objects.create(
-            usuario=self.usuario, periodo_referencia=mes_3.strftime('%Y-%m'),
+            usuario=self.usuario, organizacion=self.organizacion, periodo_referencia=mes_3.strftime('%Y-%m'),
             valor_extraido={'total': 21000, 'energia_kwh': 135}
         )
-        
+
         # Mismo mes, año anterior
         año_anterior = hoy - timedelta(days=365)
         RegistroBoleta.objects.create(
-            usuario=self.usuario, periodo_referencia=año_anterior.strftime('%Y-%m'),
+            usuario=self.usuario, organizacion=self.organizacion, periodo_referencia=año_anterior.strftime('%Y-%m'),
             valor_extraido={'total': 30000, 'energia_kwh': 180}
         )
 
@@ -269,3 +274,124 @@ class DashboardKPITests(TestCase):
         self.assertAlmostEqual(comparativa['mes_actual_co2_kg'], co2_actual, places=2)
         self.assertAlmostEqual(comparativa['mismo_mes_año_anterior_co2_kg'], co2_anterior, places=2)
         self.assertAlmostEqual(comparativa['porcentaje_variacion'], variacion, places=1)
+
+
+class RolesYPermisosTests(TestCase):
+    """organizacion_activa() auto-provisiona un hogar con rol 'admin' la primera vez que se
+    usa, así que para probar el rol 'miembro' hay que crear la Membresia a mano antes de
+    que la vista dispare ese auto-provisionamiento."""
+
+    def setUp(self):
+        self.organizacion = Organizacion.objects.create(nombre='Empresa de prueba', tipo='organizacion')
+
+        self.admin = User.objects.create_user(username='admin1', password='12345678')
+        Membresia.objects.create(organizacion=self.organizacion, usuario=self.admin, rol='admin')
+
+        self.miembro = User.objects.create_user(username='miembro1', password='12345678')
+        Membresia.objects.create(organizacion=self.organizacion, usuario=self.miembro, rol='miembro')
+
+    def test_admin_puede_crear_ubicacion(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('ubicaciones'), {'nombre': 'Planta Norte'})
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(self.organizacion.ubicaciones.filter(nombre='Planta Norte').exists())
+
+    def test_miembro_no_puede_crear_ubicacion(self):
+        self.client.force_login(self.miembro)
+        response = self.client.post(reverse('ubicaciones'), {'nombre': 'Planta Sur'})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(self.organizacion.ubicaciones.filter(nombre='Planta Sur').exists())
+
+    def test_miembro_puede_listar_ubicaciones(self):
+        self.client.force_login(self.admin)
+        self.client.post(reverse('ubicaciones'), {'nombre': 'Planta Norte'})
+
+        self.client.force_login(self.miembro)
+        response = self.client.get(reverse('ubicaciones'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+
+    def test_me_expone_rol_y_organizacion(self):
+        self.client.force_login(self.miembro)
+        response = self.client.get(reverse('me'))
+        usuario = response.json()['user']
+        self.assertEqual(usuario['rol'], 'miembro')
+        self.assertEqual(usuario['organizacion_id'], self.organizacion.id)
+
+
+class OrganizacionObligatoriaTests(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user(username='tester2', password='12345678')
+
+    def test_boleta_manual_queda_con_organizacion_al_crear(self):
+        self.client.force_login(self.usuario)
+        response = self.client.post(
+            reverse('registrar-consumo'),
+            data=json.dumps({'periodo': '2026-06', 'actividades': {'electricidad': 100}}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 201)
+        registro = RegistroBoleta.objects.get(id=response.json()['id'])
+        self.assertIsNotNone(registro.organizacion_id)
+
+        actividad = RegistroActividad.objects.get(fuente_boleta=registro)
+        self.assertEqual(actividad.organizacion_id, registro.organizacion_id)
+
+
+class AnalyticsPorUbicacionTests(TestCase):
+    """El mapa de "Por planta" filtra toda la analítica al hacer click en una filial
+    (?ubicacion_id=<id>), salvo por_planta que siempre debe traer todas las filiales
+    (es la fuente de los pines del mapa) — ver analytics_views.py."""
+
+    def setUp(self):
+        self.usuario = User.objects.create_user(username='multi_planta', password='12345678')
+        self.organizacion = organizacion_activa(self.usuario)
+        self.planta_norte = Ubicacion.objects.create(organizacion=self.organizacion, nombre='Planta Norte', pais='Chile')
+        self.planta_sur = Ubicacion.objects.create(organizacion=self.organizacion, nombre='Planta Sur', pais='Chile')
+
+        registrar_actividad(self.usuario, self.organizacion, 'electricidad', '2026-06', 100, ubicacion=self.planta_norte)
+        registrar_actividad(self.usuario, self.organizacion, 'electricidad', '2026-06', 40, ubicacion=self.planta_sur)
+
+        self.client.force_login(self.usuario)
+
+    def test_sin_filtro_suma_todas_las_plantas(self):
+        response = self.client.get(reverse('analytics-overview'))
+        self.assertEqual(response.status_code, 200)
+        total_sin_filtro = response.json()['resumen']['total_kg_co2e']
+        self.assertGreater(total_sin_filtro, 0)
+
+    def test_filtro_por_ubicacion_restringe_resumen_y_categorias(self):
+        response = self.client.get(reverse('analytics-overview'), {'ubicacion_id': self.planta_norte.id})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        response_todas = self.client.get(reverse('analytics-overview'))
+        total_todas = response_todas.json()['resumen']['total_kg_co2e']
+
+        self.assertGreater(data['resumen']['total_kg_co2e'], 0)
+        self.assertLess(data['resumen']['total_kg_co2e'], total_todas)
+        self.assertTrue(all(c['categoria'] for c in data['por_categoria']))
+
+    def test_por_planta_ignora_el_filtro_de_ubicacion(self):
+        response = self.client.get(reverse('analytics-overview'), {'ubicacion_id': self.planta_norte.id})
+        nombres = {p['nombre'] for p in response.json()['por_planta']}
+        self.assertEqual(nombres, {'Planta Norte', 'Planta Sur'})
+
+
+class CategoriasEmisionFactorVigenteTests(TestCase):
+    """/api/categorias/ trae el factor vigente de cada categoría (para el resumen en vivo
+    de la calculadora, ver calculator.ts) — nunca hardcodeado, viene de FactorEmision."""
+
+    def setUp(self):
+        self.usuario = User.objects.create_user(username='cat_tester', password='12345678')
+        self.client.force_login(self.usuario)
+
+    def test_categorias_traen_factor_vigente_kg_co2e(self):
+        response = self.client.get(reverse('categorias-emision'))
+        self.assertEqual(response.status_code, 200)
+        categorias = response.json()
+        self.assertTrue(categorias)
+
+        electricidad = next(c for c in categorias if c['codigo'] == 'electricidad')
+        self.assertIsInstance(electricidad['factor_vigente_kg_co2e'], float)
+        self.assertGreater(electricidad['factor_vigente_kg_co2e'], 0)

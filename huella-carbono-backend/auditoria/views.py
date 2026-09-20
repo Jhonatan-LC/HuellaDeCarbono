@@ -4,13 +4,24 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .extractor import extraer_valor_boleta
-from .models import CategoriaEmision, RegistroBoleta
+from .models import CategoriaEmision, RegistroBoleta, Ubicacion
 from .organizaciones import organizacion_activa
 
 
 class CsrfExemptSessionAuthentication(SessionAuthentication):
     def enforce_csrf(self, request):
         return
+
+
+def _resolver_ubicacion(usuario, ubicacion_id):
+    """Valida que la ubicación indicada pertenezca a la organización activa del usuario.
+
+    Retorna None (silenciosamente) si no viene id, o si no pertenece: la ubicación es
+    un dato opcional, un id inválido no debe tumbar el registro de la actividad.
+    """
+    if not ubicacion_id:
+        return None
+    return Ubicacion.objects.filter(id=ubicacion_id, organizacion=organizacion_activa(usuario)).first()
 
 
 def serializar_registro(registro):
@@ -69,12 +80,16 @@ class SubirBoletaView(APIView):
         if not periodo:
             return Response({"detail": "El periodo es obligatorio."}, status=400)
 
+        ubicacion = _resolver_ubicacion(request.user, request.data.get('ubicacion_id'))
+
         nuevo_registro = RegistroBoleta.objects.create(
             periodo_referencia=periodo,
             archivo=archivo,
+            ubicacion=ubicacion,
             estado='Pendiente',
             valor_extraido={"energia_kwh": None, "combustible_litros": None, "periodo": None},
             usuario=request.user,
+            organizacion=organizacion_activa(request.user),
             origen='Boleta',
         )
 
@@ -134,12 +149,16 @@ class RegistrarConsumoView(APIView):
         if not actividades:
             return Response({"detail": "Ingresa al menos un consumo mayor a cero."}, status=400)
 
+        ubicacion = _resolver_ubicacion(request.user, request.data.get('ubicacion_id'))
+
         registro = RegistroBoleta.objects.create(
             periodo_referencia=periodo,
             estado='Procesado',
             procesado=True,
             origen='Manual',
             usuario=request.user,
+            organizacion=organizacion_activa(request.user),
+            ubicacion=ubicacion,
             valor_extraido={
                 "actividades": actividades,
                 "periodo": periodo,

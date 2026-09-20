@@ -46,7 +46,7 @@ def calcular_y_registrar(registro_actividad):
     return calculo
 
 
-def registrar_actividad(usuario, organizacion, categoria_codigo, periodo, cantidad, origen='manual', fuente_boleta=None):
+def registrar_actividad(usuario, organizacion, categoria_codigo, periodo, cantidad, origen='manual', fuente_boleta=None, ubicacion=None):
     """Crea un RegistroActividad + su CalculoEmision derivado. Retorna None si el dato no es válido."""
     try:
         cantidad_decimal = Decimal(str(cantidad))
@@ -64,6 +64,7 @@ def registrar_actividad(usuario, organizacion, categoria_codigo, periodo, cantid
         usuario=usuario,
         organizacion=organizacion,
         categoria=categoria,
+        ubicacion=ubicacion,
         periodo=periodo,
         cantidad=cantidad_decimal,
         origen=origen,
@@ -91,13 +92,13 @@ def resincronizar_actividades_boleta(boleta):
     # Boletas OCR (electricidad/combustible): campos fijos en la raíz de valor_extraido.
     energia = valor_extraido.get('energia_kwh')
     if energia:
-        registrar_actividad(boleta.usuario, boleta.organizacion, 'electricidad', periodo, energia, origen=origen, fuente_boleta=boleta)
+        registrar_actividad(boleta.usuario, boleta.organizacion, 'electricidad', periodo, energia, origen=origen, fuente_boleta=boleta, ubicacion=boleta.ubicacion)
 
     combustible = valor_extraido.get('combustible_litros')
     if combustible:
-        registrar_actividad(boleta.usuario, boleta.organizacion, 'combustible', periodo, combustible, origen=origen, fuente_boleta=boleta)
+        registrar_actividad(boleta.usuario, boleta.organizacion, 'combustible', periodo, combustible, origen=origen, fuente_boleta=boleta, ubicacion=boleta.ubicacion)
 
     # Registro manual genérico: cualquier categoría sembrada, bajo valor_extraido['actividades'].
     actividades = valor_extraido.get('actividades') or {}
     for categoria_codigo, cantidad in actividades.items():
-        registrar_actividad(boleta.usuario, boleta.organizacion, categoria_codigo, periodo, cantidad, origen=origen, fuente_boleta=boleta)
+        registrar_actividad(boleta.usuario, boleta.organizacion, categoria_codigo, periodo, cantidad, origen=origen, fuente_boleta=boleta, ubicacion=boleta.ubicacion)
